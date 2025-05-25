@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               src="/optima.png"
               alt="Optima.AI"
               width={160}
-              height={40}
+              height={44}
               className="object-contain"
             />
             <Navbar />
