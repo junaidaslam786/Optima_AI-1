@@ -1,26 +1,39 @@
+// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@next-auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
 import { compare } from "bcrypt";
+import type { JWT } from "next-auth/jwt";
+import type { Session, User } from "next-auth";
 
-// --- ENV VARS ---
+// Extend the Session type to include id and role
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+    };
+  }
+  interface User {
+    id: string;
+    role: string;
+  }
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseSrv = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseSrvKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const nextAuthSecret = process.env.NEXTAUTH_SECRET!;
 
-// --- Supabase clients ---
-// adapter uses service-role behind the scenes (thanks to `secret`)
-const supabaseAdapterClient = createClient(supabaseUrl, supabaseSrv);
-// credentials authorize() uses service-role so it can bypass RLS
-const supabaseServiceClient = createClient(supabaseUrl, supabaseSrv);
+// service-role client for authorize()
+const supabaseAdmin = createClient(supabaseUrl, supabaseSrvKey);
 
-export const handler = NextAuth({
-  adapter: SupabaseAdapter({
-    url: supabaseUrl,
-    secret: supabaseSrv, // ← point at your custom schema
-  }),
+type NextAuthJWT = JWT & { role?: string };
+
+const authHandler = NextAuth({
+  adapter: SupabaseAdapter({ url: supabaseUrl, secret: supabaseSrvKey }),
   session: { strategy: "jwt" },
   providers: [
     CredentialsProvider({
@@ -31,21 +44,14 @@ export const handler = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) return null;
-
-        // 1) fetch user row from next_auth.users
-        const { data: user, error } = await supabaseServiceClient
+        const { data: user, error } = await supabaseAdmin
           .from("users")
-          .select("id, email, name, role, password_hash")
+          .select("id,email,name,role,password_hash")
           .eq("email", credentials.email)
           .single();
-
         if (error || !user) return null;
-
-        // 2) verify hash
         const isValid = await compare(credentials.password, user.password_hash);
         if (!isValid) return null;
-
-        // 3) return the shape NextAuth expects
         return {
           id: user.id,
           email: user.email,
@@ -56,26 +62,34 @@ export const handler = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      // first time, attach role
-      if (user) token.role = (user as any).role;
+    async jwt({
+      token,
+      user,
+    }: {
+      token: NextAuthJWT;
+      user?: User;
+    }): Promise<NextAuthJWT> {
+      if (user) token.role = user.role;
       return token;
     },
-    async session({ session, token }) {
-      // Attach custom properties directly to session.user (TypeScript will warn, but runtime is fine)
-      if (session.user) {
-        (session.user as any).id = token.sub!;
-        (session.user as any).role = token.role as string;
-      }
+    async session({
+      session,
+      token,
+    }: {
+      session: Session;
+      token: NextAuthJWT;
+    }): Promise<Session> {
+      session.user = {
+        id: token.sub!,
+        email: session.user!.email!,
+        name: session.user!.name!,
+        role: token.role as string,
+      };
       return session;
     },
   },
-  pages: {
-    signIn: "/auth/signin",
-    newUser: "/auth/signup",
-  },
+  pages: { signIn: "/auth/signin", newUser: "/auth/signup" },
   secret: nextAuthSecret,
 });
 
-// for App Router
-export { handler as GET, handler as POST };
+export { authHandler as GET, authHandler as POST };
