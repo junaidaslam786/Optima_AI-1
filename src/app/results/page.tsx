@@ -1,58 +1,69 @@
 // app/results/page.tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import { useFetch } from "@/hooks/useFetch";
 import { BiomarkerCard } from "@/components/Results/BioMarkerCard";
 
-export default function ResultsPage() {
-  const cards = [
-    { title: "Biomarker Name", value: 587, unit: "ng/dL", min: 264, max: 916 },
-    { title: "Biomarker Name", value: 587, unit: "ng/dL", min: 264, max: 916 },
-    { title: "Biomarker Name", value: 587, unit: "ng/dL", min: 264, max: 916 },
-  ];
+interface Result {
+  id: string;
+  value: number;
+  marker_id: number;
+}
+interface Insight {
+  insight: string;
+}
 
-  const insights = [
-    "Maintain a balanced diet rich in fruits and vegetables, especially zinc and vitamin D",
-    "Prioritize resistance training to enhance muscle mass and strength",
-    "Aim to manage weight through a combination of a healthy diet and consistent physical activity",
-    "Increased testosterone levels can lead to improved energy levels and strength",
-    "Maintain a balanced diet rich in fruits and vegetables, especially zinc and vitamin D",
-  ];
+export default function ResultsPage() {
+  const {
+    data: results,
+    error: resErr,
+    loading: resLoading,
+  } = useFetch<Result[]>("/api/results");
+  const [insights, setInsights] = useState<string[]>([]);
+  useEffect(() => {
+    if (!results) return;
+    Promise.all(
+      results.map((r) =>
+        fetch(`/api/insights?result_id=${r.id}`)
+          .then((res) => res.json() as Promise<Insight[]>)
+          .then((arr) => arr[0]?.insight ?? "")
+      )
+    ).then(setInsights);
+  }, [results]);
+
+  if (resLoading) return <p>Loading your results…</p>;
+  if (resErr) return <p className="text-red-500">{resErr}</p>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-7xl mx-auto px-8">
-        {/* Page title */}
         <h1 className="text-3xl font-bold text-gray-900">
           Testosterone Results
         </h1>
 
-        {/* two-column layout */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* LEFT: list of cards */}
           <div className="space-y-6">
-            {cards.map((c, i) => (
+            {results?.map((r) => (
               <BiomarkerCard
-                key={i}
-                title={c.title}
-                value={c.value}
-                unit={c.unit}
-                min={c.min}
-                max={c.max}
+                key={r.id}
+                title={`Marker #${r.marker_id}`}
+                value={r.value}
+                unit="—"
+                min={0}
+                max={100}
               />
             ))}
           </div>
 
-          {/* RIGHT: insights sidebar */}
           <aside>
             <div className="bg-cyan-50 rounded-lg shadow p-6 space-y-4">
               <h2 className="text-xl font-medium text-gray-800">
                 Insights from Optima.AI
               </h2>
-              <p className="text-gray-700">
-                Optimizing testosterone level can optimize energy levels and
-                strength.
-              </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700">
-                {insights.map((item, idx) => (
-                  <li key={idx}>{item}</li>
+                {insights.map((text, i) => (
+                  <li key={i}>{text}</li>
                 ))}
               </ul>
             </div>

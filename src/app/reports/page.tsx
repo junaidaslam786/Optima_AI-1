@@ -1,27 +1,37 @@
 // app/reports/page.tsx
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useFetch } from "@/hooks/useFetch";
 import { HealthScoreChart } from "@/components/Reports/HealthScoreChart";
 import { PastReportsList } from "@/components/Reports/PastReportsList";
 
 export default function ReportsPage() {
-  const pastReports = [
-    { date: "April 12, 2024", href: "#" },
-    { date: "February 8, 2024", href: "#" },
-    { date: "November 3, 2023", href: "#" },
-    { date: "September 9, 2023", href: "#" },
-    { date: "August 18, 2023", href: "#" },
-  ];
+  const { data: session } = useSession();
+  const userId = session?.user.id;
+  const {
+    data: reports,
+    error,
+    loading,
+  } = useFetch<{ id: string; generated_at: string; report_url: string }[]>(
+    userId ? `/api/reports?user_id=${userId}` : ""
+  );
+
+  if (loading) return <p>Loading reports…</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
+
+  // Transform to the shape PastReportsList expects
+  const pastReports =
+    reports?.map((r) => ({
+      date: new Date(r.generated_at).toLocaleDateString(),
+      href: r.report_url,
+    })) ?? [];
 
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8 pb-12">
-      {/* Page title */}
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Reports</h1>
-      <div className="w-full justify-center items-center">
-        {/* Chart component */}
-        <HealthScoreChart />
-
-        {/* Past reports list component */}
-        <PastReportsList reports={pastReports} />
-      </div>
+      <HealthScoreChart />
+      <PastReportsList reports={pastReports} />
     </div>
   );
 }

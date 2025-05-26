@@ -4,36 +4,34 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@next-auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
 import { compare } from "bcrypt";
-import type { JWT } from "next-auth/jwt";
-import type { Session, User } from "next-auth";
+import type { DefaultSession } from "next-auth";
 
-// Extend the Session type to include id and role
 declare module "next-auth" {
   interface Session {
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      role: string;
-    };
+    user: { id: string; role: string } & DefaultSession["user"];
   }
-  interface User {
-    id: string;
-    role: string;
+  interface JWT {
+    userId?: string;
+    role?: string;
   }
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseSrvKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const nextAuthSecret = process.env.NEXTAUTH_SECRET!;
+interface User {
+  id: string;
+  email: string;
+  role: string;
+}
 
-// service-role client for authorize()
-const supabaseAdmin = createClient(supabaseUrl, supabaseSrvKey);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-type NextAuthJWT = JWT & { role?: string };
-
-const authHandler = NextAuth({
-  adapter: SupabaseAdapter({ url: supabaseUrl, secret: supabaseSrvKey }),
+const handler = NextAuth({
+  adapter: SupabaseAdapter({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  }),
   session: { strategy: "jwt" },
   providers: [
     CredentialsProvider({
@@ -42,16 +40,21 @@ const authHandler = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials.password) return null;
-        const { data: user, error } = await supabaseAdmin
+      async authorize(creds) {
+        if (!creds?.email || !creds.password) return null;
+
+        // fetch user
+        const { data: user, error } = await supabase
           .from("users")
-          .select("id,email,name,role,password_hash")
-          .eq("email", credentials.email)
+          .select("id,email,name,password_hash,role")
+          .eq("email", creds.email)
           .single();
         if (error || !user) return null;
-        const isValid = await compare(credentials.password, user.password_hash);
-        if (!isValid) return null;
+
+        // verify hash
+        if (!(await compare(creds.password, user.password_hash))) return null;
+
+        // return the user object, including role
         return {
           id: user.id,
           email: user.email,
@@ -61,35 +64,31 @@ const authHandler = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({
-      token,
-      user,
-    }: {
-      token: NextAuthJWT;
-      user?: User;
-    }): Promise<NextAuthJWT> {
-      if (user) token.role = user.role;
-      return token;
-    },
-    async session({
-      session,
-      token,
-    }: {
-      session: Session;
-      token: NextAuthJWT;
-    }): Promise<Session> {
-      session.user = {
-        id: token.sub!,
-        email: session.user!.email!,
-        name: session.user!.name!,
-        role: token.role as string,
-      };
-      return session;
-    },
+ callbacks: {
+  async jwt({ token, user }) {
+    if (user) {
+      token.sub    = (user as User).id;   // ← ensure sub is the UUID
+      token.userId = (user as User).id;   // ← your custom claim
+      token.role   = (user as User).role; // ← your custom claim
+    }
+    return token;
   },
-  pages: { signIn: "/auth/signin", newUser: "/auth/signup" },
-  secret: nextAuthSecret,
+  async session({ session, token }) {
+    session.user = {
+      id:    token.sub!,                  // ← now sub is correct
+      email: session.user!.email!,
+      name:  session.user!.name!,
+      role:  token.role as string,
+    };
+    return session;
+  },
+},
+
+  pages: {
+    signIn: "/auth/signin",
+    newUser: "/auth/signup",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 });
 
-export { authHandler as GET, authHandler as POST };
+export { handler as GET, handler as POST };

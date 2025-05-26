@@ -1,22 +1,13 @@
 import { TableRow } from "./TableRow";
 
-const data = [
-  {
-    marker: "Total Testosterone",
-    result: "580 ng/dL",
-    range: "300 - 950",
-    status: "Normal",
-  },
-  { marker: "SHBG", result: "38 nmol/L", range: "10 - 57", status: "Normal" },
-  {
-    marker: "Free Testosterone",
-    result: "17.3 pg/mL",
-    range: "70 - 230",
-    status: "Normal",
-  },
-];
+interface Markers {
+  id: string;
+  code: string;
+  normal_low: number;
+  normal_high: number;
+}
 
-export function HormonesTable() {
+export function HormonesTable<HormonesTableProps>(markers: Markers[]) {
   return (
     <table className="w-full border-collapse rounded-lg overflow-hidden">
       <thead className="bg-cyan-100">
@@ -28,13 +19,13 @@ export function HormonesTable() {
         </tr>
       </thead>
       <tbody>
-        {data.map((row) => (
+        {markers.map((row) => (
           <TableRow
-            key={row.marker}
-            marker={row.marker}
-            result={row.result}
-            range={row.range}
-            status={row.status}
+            key={row.id}
+            marker={row.code}
+            result={row.normal_high}
+            range={row.normal_low + " - " + row.normal_high}
+            status={row.normal_low}
           />
         ))}
       </tbody>

@@ -1,114 +1,149 @@
--- 1) Enable UUID gen
+-- 1) Enable pgcrypto
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2) Drop any legacy next_auth schema
-DROP SCHEMA IF EXISTS next_auth CASCADE;
-
--- 3) Create your ONE users table in public
-CREATE TABLE IF NOT EXISTS public.users (
+-- 3) Users + seed admin
+CREATE TABLE public.users (
   id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   email         TEXT         NOT NULL UNIQUE,
   password_hash TEXT         NOT NULL,
   name          TEXT         NOT NULL,
-  role          TEXT         NOT NULL,       -- e.g. 'admin' | 'client'
-  dob           DATE,                         -- optional
-  address       TEXT,                         -- optional
-  subscription  TEXT,                         -- optional
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  role          TEXT         NOT NULL DEFAULT 'client',
+  dob           DATE,
+  address       TEXT,
+  subscription  TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-GRANT SELECT, INSERT, UPDATE ON public.users TO postgres, service_role;
+INSERT INTO public.users (email, password_hash, name, role)
+VALUES (
+  'johndoe@gmail.com',
+  '$2b$10$gEE2s91KtQ7bnlUkDpyYeOh2Q/LQBjAsKdw5TP0olSc2GkUnb7jpC',
+  'John Doe',
+  'admin'
+);
+GRANT SELECT, INSERT, UPDATE ON public.users TO anon, service_role;
 
--- 4) Row-Level Security on users
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS select_self ON public.users;
-DROP POLICY IF EXISTS update_self ON public.users;
-CREATE POLICY select_self ON public.users
-  FOR SELECT USING (auth.uid() = id);
-CREATE POLICY update_self ON public.users
-  FOR UPDATE USING (auth.uid() = id);
+-- 4) Panels
+CREATE TABLE public.panels (
+  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT         NOT NULL,
+  description TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE ON public.panels TO anon, service_role;
 
--- 5) Trigger to auto‐stamp updated_at
---    Drop trigger first, then drop/create function
+-- 5) Uploads
+CREATE TABLE public.uploads (
+  id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_user_id  UUID         NOT NULL REFERENCES public.users(id),
+  client_user_id UUID         NOT NULL REFERENCES public.users(id),
+  panel_id       UUID         NOT NULL REFERENCES public.panels(id),
+  filename       TEXT         NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.uploads TO anon, service_role;
+
+-- 6) Markers
+CREATE TABLE public.markers (
+  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  csvfile_id  UUID         NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
+  date        DATE         NOT NULL,
+  marker      TEXT         NOT NULL,
+  value       NUMERIC      NOT NULL,
+  unit        TEXT         NOT NULL,
+  normal_low  NUMERIC,
+  normal_high NUMERIC,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.markers TO anon, service_role;
+
+-- 7) Insights
+CREATE TABLE public.insights (
+  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  marker_id   UUID         NOT NULL REFERENCES public.markers(id) ON DELETE CASCADE,
+  insight     TEXT         NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.insights TO anon, service_role;
+
+
+-- 8) Triggers & functions for updated_at
+
+-- users
 DROP TRIGGER IF EXISTS trg_users_updated_at ON public.users;
-DROP FUNCTION IF EXISTS public.set_updated_at();
-
-CREATE OR REPLACE FUNCTION public.set_updated_at()
+DROP FUNCTION IF EXISTS public.set_updated_at_users();
+CREATE FUNCTION public.set_updated_at_users()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at := NOW();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
 CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON public.users
   FOR EACH ROW
-  EXECUTE PROCEDURE public.set_updated_at();
+  EXECUTE PROCEDURE public.set_updated_at_users();
 
--- 6) Roles lookup table & link in users
-CREATE TABLE IF NOT EXISTS public.roles (
-  id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT   NOT NULL UNIQUE
-);
-GRANT SELECT, INSERT, UPDATE ON public.roles TO postgres, service_role;
+-- panels
+DROP TRIGGER IF EXISTS trg_panels_updated_at ON public.panels;
+DROP FUNCTION IF EXISTS public.set_updated_at_panels();
+CREATE FUNCTION public.set_updated_at_panels()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_panels_updated_at
+  BEFORE UPDATE ON public.panels
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_panels();
 
-ALTER TABLE public.users
-  ADD COLUMN IF NOT EXISTS role_id UUID REFERENCES public.roles(id);
+-- uploads
+DROP TRIGGER IF EXISTS trg_uploads_updated_at ON public.uploads;
+DROP FUNCTION IF EXISTS public.set_updated_at_uploads();
+CREATE FUNCTION public.set_updated_at_uploads()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_uploads_updated_at
+  BEFORE UPDATE ON public.uploads
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_uploads();
 
--- 7) CSV uploads
-CREATE TABLE IF NOT EXISTS public.uploads (
-  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID         NOT NULL REFERENCES public.users(id),
-  filename    TEXT         NOT NULL,
-  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  status      TEXT         NOT NULL DEFAULT 'pending'
-);
-GRANT SELECT, INSERT, UPDATE ON public.uploads TO postgres, service_role;
+-- markers
+DROP TRIGGER IF EXISTS trg_markers_updated_at ON public.markers;
+DROP FUNCTION IF EXISTS public.set_updated_at_markers();
+CREATE FUNCTION public.set_updated_at_markers()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_markers_updated_at
+  BEFORE UPDATE ON public.markers
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_markers();
 
--- 8) Panels & markers
-CREATE TABLE IF NOT EXISTS public.panels (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT   NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-GRANT SELECT, INSERT, UPDATE ON public.panels TO postgres, service_role;
-
-CREATE TABLE IF NOT EXISTS public.markers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  panel_id UUID NOT NULL REFERENCES panels(id) ON DELETE CASCADE,
-  code        TEXT   NOT NULL,
-  unit        TEXT   NOT NULL,
-  normal_low  NUMERIC,
-  normal_high NUMERIC
-);
-GRANT SELECT, INSERT, UPDATE ON public.markers TO postgres, service_role;
-
--- 9) Test results
-CREATE TABLE IF NOT EXISTS public.results (
-  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  upload_id   UUID         NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
-  marker_id   UUID    NOT NULL REFERENCES public.markers(id),
-  value       NUMERIC      NOT NULL,
-  measured_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-GRANT SELECT, INSERT, UPDATE ON public.results TO postgres, service_role;
-
--- 10) AI insights
-CREATE TABLE IF NOT EXISTS public.insights (
-  id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  result_id  UUID         NOT NULL REFERENCES public.results(id) ON DELETE CASCADE,
-  insight    TEXT         NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-GRANT SELECT, INSERT, UPDATE ON public.insights TO postgres, service_role;
-
--- 11) PDF reports
-CREATE TABLE IF NOT EXISTS public.pdf_reports (
-  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID         NOT NULL REFERENCES public.users(id),
-  report_url   TEXT         NOT NULL,
-  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-GRANT SELECT, INSERT, UPDATE ON public.pdf_reports TO postgres, service_role;
+-- insights
+DROP TRIGGER IF EXISTS trg_insights_updated_at ON public.insights;
+DROP FUNCTION IF EXISTS public.set_updated_at_insights();
+CREATE FUNCTION public.set_updated_at_insights()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_insights_updated_at
+  BEFORE UPDATE ON public.insights
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_insights();
