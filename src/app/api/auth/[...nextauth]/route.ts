@@ -1,5 +1,5 @@
 // src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@next-auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
@@ -22,12 +22,14 @@ interface User {
   role: string;
 }
 
+// you only call createClient here to talk to your users table
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const handler = NextAuth({
+// 1️⃣ Define your options object
+export const authOptions: NextAuthOptions = {
   adapter: SupabaseAdapter({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -43,7 +45,6 @@ const handler = NextAuth({
       async authorize(creds) {
         if (!creds?.email || !creds.password) return null;
 
-        // fetch user
         const { data: user, error } = await supabase
           .from("users")
           .select("id,email,name,password_hash,role")
@@ -51,10 +52,8 @@ const handler = NextAuth({
           .single();
         if (error || !user) return null;
 
-        // verify hash
         if (!(await compare(creds.password, user.password_hash))) return null;
 
-        // return the user object, including role
         return {
           id: user.id,
           email: user.email,
@@ -64,31 +63,34 @@ const handler = NextAuth({
       },
     }),
   ],
- callbacks: {
-  async jwt({ token, user }) {
-    if (user) {
-      token.sub    = (user as User).id;   // ← ensure sub is the UUID
-      token.userId = (user as User).id;   // ← your custom claim
-      token.role   = (user as User).role; // ← your custom claim
-    }
-    return token;
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub    = (user as User).id;
+        token.userId = (user as User).id;
+        token.role   = (user as User).role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user = {
+        id:    token.sub!,
+        email: session.user!.email!,
+        name:  session.user!.name!,
+        role:  token.role as string,
+      };
+      return session;
+    },
   },
-  async session({ session, token }) {
-    session.user = {
-      id:    token.sub!,                  // ← now sub is correct
-      email: session.user!.email!,
-      name:  session.user!.name!,
-      role:  token.role as string,
-    };
-    return session;
-  },
-},
-
   pages: {
     signIn: "/auth/signin",
     newUser: "/auth/signup",
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
 
+// 2️⃣ Call NextAuth exactly once with those options
+const handler = NextAuth(authOptions);
+
+// 3️⃣ Export that single handler for both GET & POST
 export { handler as GET, handler as POST };

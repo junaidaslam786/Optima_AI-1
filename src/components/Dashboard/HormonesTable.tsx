@@ -1,13 +1,20 @@
 import { TableRow } from "./TableRow";
 
-interface Markers {
+interface Marker {
   id: string;
-  code: string;
+  value: number;
   normal_low: number;
   normal_high: number;
+  unit: string;
+  marker: string;
+  status: string;
 }
 
-export function HormonesTable<HormonesTableProps>(markers: Markers[]) {
+interface HormonesTableProps {
+  markers: Marker[];
+}
+
+export function HormonesTable({ markers }: HormonesTableProps) {
   return (
     <table className="w-full border-collapse rounded-lg overflow-hidden">
       <thead className="bg-cyan-100">
@@ -22,10 +29,10 @@ export function HormonesTable<HormonesTableProps>(markers: Markers[]) {
         {markers.map((row) => (
           <TableRow
             key={row.id}
-            marker={row.code}
-            result={row.normal_high}
+            marker={row.marker}
+            result={`${row.normal_high} (${row.unit})`}
             range={row.normal_low + " - " + row.normal_high}
-            status={row.normal_low}
+            status={row.status}
           />
         ))}
       </tbody>

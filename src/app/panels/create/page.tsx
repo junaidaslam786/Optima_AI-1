@@ -1,45 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { getUserId, getUserRole } from "@/utils/utils";
+import { useState } from "react";
 
 export default function CreatePanelPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // state for role & id
-  const [role, setRole] = useState<string | null>(null);
-  const [id,   setId]   = useState<string | null>(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
+  // ─── HOISTED HOOKS ─────────────────────────────────────────
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // fetch role/id on client only
-  useEffect(() => {
-    const userRole = getUserRole();
-    const userId   = getUserId();
-    setRole(userRole);
-    setId(userId);
-    setLoadingAuth(false);
-  }, []);
+  // ─── AUTHENTICATION GATING ────────────────────────────────
+  if (status === "loading") {
+    return <p>Checking permissions…</p>;
+  }
 
-  // while we’re checking auth…
-  if (loadingAuth) return <p>Checking permissions…</p>;
-
-  // not signed in
-  if (!role) {
+  if (!session) {
     return <p>Not signed in.</p>;
   }
 
-  // non-admin
-  if (role !== "admin") {
+  if (session.user.role !== "admin") {
     return <p className="text-red-600">Access denied.</p>;
   }
 
-  // now the rest of your form…
-  const [name, setName]         = useState("");
-  const [description, setDescription] = useState("");
-  const [error, setError]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
-
+  // ─── FORM SUBMIT LOGIC ────────────────────────────────────
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -59,13 +47,13 @@ export default function CreatePanelPage() {
 
     if (!res.ok) {
       const json = await res.json();
-      setError(json.error || "Failed to create panel");
-      return;
+      setError(json.error ?? "Failed to create panel");
+    } else {
+      router.push("/panels");
     }
-
-    router.push("/panels");
   }
 
+  // ─── RENDER AUTHORIZED FORM ───────────────────────────────
   return (
     <div className="max-w-xl mx-auto mt-16 p-8 bg-white rounded-lg shadow">
       <h1 className="text-2xl font-semibold mb-6">Create New Panel</h1>
@@ -73,7 +61,21 @@ export default function CreatePanelPage() {
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
 
       <form onSubmit={onSubmit} className="space-y-5">
-        {/* name & description inputs here… */}
+        <input
+          type="text"
+          placeholder="Panel Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+
+        <textarea
+          placeholder="Description (optional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+
         <button
           type="submit"
           disabled={loading}

@@ -2,14 +2,24 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
-  const { user_id, filename } = await request.json();
-  const { data, error } = await supabaseAdmin
-    .from("uploads")
-    .insert({ user_id, filename })
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data, { status: 201 });
+  const data = await request.formData();
+  const file = data.get("file") as File;
+  if (!file) {
+    return NextResponse.json({ error: "No file" }, { status: 400 });
+  }
+
+  // upload with service_role (bypasses RLS)
+  const { data: storageData, error: storageErr } = await supabaseAdmin.storage
+    .from("csv-uploads")
+    .upload(`some-path/${file.name}`, file);
+
+  if (storageErr) {
+    return NextResponse.json({ error: storageErr.message }, { status: 500 });
+  }
+
+  // …then create your uploads row as before…
+  // supabaseAdmin.from("uploads").insert({ … })
+  return NextResponse.json(storageData, { status: 201 });
 }
 
 export async function GET(

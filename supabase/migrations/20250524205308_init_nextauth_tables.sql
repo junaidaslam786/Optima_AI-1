@@ -38,7 +38,6 @@ CREATE TABLE public.uploads (
   id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_user_id  UUID         NOT NULL REFERENCES public.users(id),
   client_user_id UUID         NOT NULL REFERENCES public.users(id),
-  panel_id       UUID         NOT NULL REFERENCES public.panels(id),
   filename       TEXT         NOT NULL,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -47,16 +46,20 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.uploads TO anon, service_role;
 
 -- 6) Markers
 CREATE TABLE public.markers (
-  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  csvfile_id  UUID         NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
-  date        DATE         NOT NULL,
-  marker      TEXT         NOT NULL,
-  value       NUMERIC      NOT NULL,
-  unit        TEXT         NOT NULL,
-  normal_low  NUMERIC,
-  normal_high NUMERIC,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  csvfile_id   UUID         NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
+  user_id      UUID         NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  panel_id     UUID         NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
+  col_date     DATE         NOT NULL DEFAULT now(),
+  rep_date     DATE         NOT NULL DEFAULT now(),
+  marker       TEXT         NOT NULL,
+  value        NUMERIC      NOT NULL,
+  unit         TEXT         NOT NULL,
+  normal_low   NUMERIC,
+  normal_high  NUMERIC,
+  status       TEXT         NOT NULL DEFAULT 'pending',
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.markers TO anon, service_role;
 
