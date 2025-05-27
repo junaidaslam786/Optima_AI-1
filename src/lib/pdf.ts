@@ -1,41 +1,34 @@
-// lib/pdf.ts
 import PDFDocument from "pdfkit";
-import { Readable } from "stream";
-
-// A helper to collect the PDF into a Buffer
-function streamToBuffer(stream: Readable): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-    stream.on("end", () => resolve(Buffer.concat(chunks)));
-    stream.on("error", reject);
-  });
-}
-
-/**
- * Builds a simple PDF report for the given result IDs.
- * You can extend this to query your `results`/`insights` tables and
- * render detailed tables, charts, etc.
- */
 import { PassThrough } from "stream";
+import path from "path";
 
 export async function buildPdf(resultIds: string[]): Promise<Buffer> {
-  const doc = new PDFDocument({ margin: 50 });
-  const stream = new PassThrough();
+  // 1) resolve your font file
+  const fontPath = path.join(process.cwd(), "public", "fonts", "Helvetica.ttf");
 
-  doc.pipe(stream);
-
-  doc.fontSize(20).text("Lab Results Report", { align: "center" });
-  doc.moveDown();
-
-  // For each result ID, add a heading.
-  // In a real app you'd fetch result data from your DB.
-  resultIds.forEach((id, idx) => {
-    doc.fontSize(14).text(`Result #${idx + 1}`, { underline: true });
-    doc.fontSize(12).text(`• Result ID: ${id}`);
-    doc.moveDown();
+  // 2) pass it into the constructor as `font`
+  const doc = new PDFDocument({
+    margin: 50,
+    font: fontPath,          // ← this makes OpenSans your default
   });
 
+  // 3) pipe & build as usual
+  const stream = new PassThrough();
+  doc.pipe(stream);
+
+  // now you can call `doc.fontSize(...).text(...)` etc.
+  // no more Helvetica.afm errors.
+
+  doc
+    .fontSize(18)
+    .text("Your Personalized Insights", { underline: true });
+
+  // … your panels / bullets logic …
+
   doc.end();
-  return streamToBuffer(stream);
+
+  // collect the Buffer
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks);
 }

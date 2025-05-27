@@ -1,32 +1,23 @@
 // app/page.tsx
 import { PageHeader } from "../components/Dashboard/PageHeader";
-import {
-  HormonesSection,
-  Marker,
-} from "../components/Dashboard/HormonesSection";
+import { HormonesSection, Marker } from "../components/Dashboard/HormonesSection";
+import { InfoCard } from "../components/Dashboard/InfoCard";
 
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { InsightsLoader } from "@/components/Dashboard/InsightsLoader";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return (
-      <p className="text-center mt-20">
-        Please sign in to view your dashboard.
-      </p>
-    );
+    return <p className="text-center mt-20">Please sign in to view your dashboard.</p>;
   }
   const userId = session.user.id;
 
-  // 1) Fetch markers + panels exactly as before…
+  // --- 1) fetch the markers & panels as before ---
   const { data: markers, error: mErr } = await supabaseAdmin
     .from("markers")
-    .select(
-      "id, panel_id, value, normal_low, normal_high, unit, marker, status, panels(name)"
-    )
+    .select("id, panel_id, value, normal_low, normal_high, unit, marker, status, panels(name)")
     .eq("user_id", userId);
 
   if (mErr || !markers) {
@@ -60,15 +51,30 @@ export default async function HomePage() {
     });
   });
 
+  // --- 2) invoke your AI Edge function on the server ---
+  const { data: rawInsights, error: iErr } = await supabaseAdmin.functions.invoke(
+    "generate-insights",
+    { body: JSON.stringify({ user_id: userId }) }
+  );
+
+  if (iErr) console.error("Insights function error:", iErr);
+  // supabase-js returns data as `unknown` so coerce it to string
+  const insightsMarkdown = (rawInsights as string) ?? "";
+
+  // --- 3) render your dashboard and the InfoCard ---
   return (
     <div className="flex">
-      {/* Left column */}
       <div className="flex-1">
         <PageHeader />
         <HormonesSection byPanel={byPanel} panelMap={panelMap} />
       </div>
-      <InsightsLoader userId={session.user.id} />
-      {/* Right sidebar */}
+
+      {/* Right sidebar: show the AI insights or an error */}
+      {iErr ? (
+        <p className="text-red-600 p-6">{iErr.message}</p>
+      ) : (
+        <InfoCard body={insightsMarkdown} />
+      )}
     </div>
   );
 }
