@@ -1,8 +1,10 @@
 // components/HormonesSection.tsx
 "use client";
 
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { HormonesTable } from "./HormonesTable";
-import { Callout }      from "./Callout";
+import { Callout } from "./Callout";
 
 export interface Marker {
   id: string;
@@ -21,22 +23,32 @@ interface SectionProps {
 }
 
 export function HormonesSection({ byPanel, panelMap }: SectionProps) {
+  const router = useRouter();
+
+  function handleClick(panel_id: string) {
+    const name = panelMap[panel_id] || "Unnamed Panel";
+    Cookies.set("selectedPanelId", panel_id);
+    Cookies.set("selectedPanelName", name);
+    router.push("/results");
+  }
+
   return (
     <>
       {Object.entries(byPanel).map(([panel_id, list]) => {
         const panelName = panelMap[panel_id] || "Unnamed Panel";
         return (
-          <section key={panel_id} className="bg-white shadow rounded-lg p-6 mb-8">
+          <section
+            key={panel_id}
+            onClick={() => handleClick(panel_id)}
+            className="cursor-pointer hover:shadow-lg bg-white shadow rounded-lg p-6 mb-8 transition"
+          >
             <h2 className="text-xl font-medium text-gray-800 mb-4">
               {panelName}
             </h2>
 
             <HormonesTable markers={list} />
 
-            <Callout>
-              {/* dummy text */}
-              Here are your latest results for “{panelName}.”
-            </Callout>
+            <Callout>Here are your latest results for “{panelName}.”</Callout>
           </section>
         );
       })}

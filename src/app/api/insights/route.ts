@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Result not found." }, { status: 404 });
   }
   const resp = await openai.chat.completions.create({
-    model: "gpt-4o-turbo",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: "You are a lab-insights generator." },
       {

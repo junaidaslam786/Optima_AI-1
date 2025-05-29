@@ -1,34 +1,137 @@
-import PDFDocument from "pdfkit";
-import { PassThrough } from "stream";
-import path from "path";
+// src/lib/pdf.ts
+import { PDFDocument, StandardFonts } from "pdf-lib";
 
-export async function buildPdf(resultIds: string[]): Promise<Buffer> {
-  // 1) resolve your font file
-  const fontPath = path.join(process.cwd(), "public", "fonts", "Helvetica.ttf");
+export interface Marker {
+  id: string;
+  panel_id: string;
+  value: number;
+  normal_low: number;
+  normal_high: number;
+  unit: string;
+  marker: string;
+  status: string;
+}
+export interface Panel {
+  id: string;
+  name: string;
+}
+export interface BuildPdfArgs {
+  userName:  string;
+  userEmail: string;
+  panels:    Panel[];
+  markers:   Marker[];
+  insights:  string;
+}
 
-  // 2) pass it into the constructor as `font`
-  const doc = new PDFDocument({
-    margin: 50,
-    font: fontPath,          // ← this makes OpenSans your default
-  });
+export async function buildPdf({
+  userName,
+  userEmail,
+  panels,
+  markers,
+  insights,
+}: BuildPdfArgs): Promise<Buffer> {
+  // 1) Create document & embed built-in Helvetica
+  const pdfDoc = await PDFDocument.create();
+  const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  // 3) pipe & build as usual
-  const stream = new PassThrough();
-  doc.pipe(stream);
+  // 2) Layout constants
+  const pageWidth  = 612;
+  const pageHeight = 792;
+  const margin     = 40;
+  const fontSize   = 12;
+  const lineHeight = fontSize * 1.2;
+  const maxWidth   = pageWidth - margin * 2;
 
-  // now you can call `doc.fontSize(...).text(...)` etc.
-  // no more Helvetica.afm errors.
+  // 3) Start on page 1
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let cursorY = pageHeight - margin;
 
-  doc
-    .fontSize(18)
-    .text("Your Personalized Insights", { underline: true });
+  // 4) Simple word-wrap helper
+  function wrapParagraph(text: string): string[] {
+    const lines: string[] = [];
+    const words = text.split(" ");
+    let line = "";
 
-  // … your panels / bullets logic …
+    for (const word of words) {
+      const testLine = line ? line + " " + word : word;
+      const w = font.widthOfTextAtSize(testLine, fontSize);
+      if (w <= maxWidth) {
+        line = testLine;
+      } else {
+        if (line) lines.push(line);
+        line = word;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
 
-  doc.end();
+  // 5) Draw a block of text (with manual wrapping & auto-new-page)
+  function drawBlock(
+    text: string,
+    opts: { size?: number; indent?: number } = {}
+  ) {
+    const size   = opts.size   ?? fontSize;
+    const indent = opts.indent ?? 0;
+    const lh     = size * 1.2;
+    const blockWidth = maxWidth - indent;
 
-  // collect the Buffer
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks);
+    // split into logical paragraphs on "\n"
+    const paragraphs = text.split("\n");
+    for (const para of paragraphs) {
+      const lines = wrapParagraph(para);
+      for (const l of lines) {
+        if (cursorY - lh < margin) {
+          page    = pdfDoc.addPage([pageWidth, pageHeight]);
+          cursorY = pageHeight - margin;
+        }
+        page.drawText(l, {
+          x: margin + indent,
+          y: cursorY,
+          size,
+          font,
+          maxWidth: blockWidth,
+          lineHeight: lh,
+        });
+        cursorY -= lh;
+      }
+      // after each paragraph, add a blank line
+      cursorY -= lh;
+    }
+  }
+
+  // 6) Build the PDF content
+
+  drawBlock("Optima Insights AI", { size: 22 });
+  drawBlock("", { size: fontSize });
+
+  drawBlock(`Name:  ${userName}`);
+  drawBlock(`Email: ${userEmail}`);
+  drawBlock("", { size: fontSize });
+
+  for (const panel of panels) {
+    drawBlock(panel.name, { size: 14 });
+    drawBlock(
+      markers
+        .filter((m) => m.panel_id === panel.id)
+        .map(
+          (m) =>
+            `• ${m.marker}: ${m.value} ${m.unit} ` +
+            `(norm ${m.normal_low}–${m.normal_high}) — ${m.status}`
+        )
+        .join("\n"),
+      { indent: 10 }
+    );
+    drawBlock("", { size: fontSize });
+  }
+
+  // new page for insights
+  page = pdfDoc.addPage([pageWidth, pageHeight]);
+  cursorY = pageHeight - margin;
+  drawBlock("AI Insights", { size: 16 });
+  drawBlock(insights);
+
+  // 7) Finish and return
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
 }

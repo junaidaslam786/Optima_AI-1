@@ -7,8 +7,8 @@ const NAV_LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/reports", label: "Past Reports" },
   { href: "/book-a-test", label: "Book a Test" },
-  { href: "/help-with-results", label: "Help with Results" },
-  { href: "/export", label: "Export" },
+  { href: "/help", label: "Help with Results" },
+  { href: "/profile", label: "My Profile" },
 ];
 
 export function Navbar() {

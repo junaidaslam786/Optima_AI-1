@@ -5,7 +5,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
 const CORS = {
-  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info"
 };
@@ -71,12 +71,12 @@ Deno.serve(async (req)=>{
   }
   // 5) Build a single doctor-style prompt
   const systemMsg = `
-You are a seasoned medical professional and nutritionist. 
-A patient has the following lab panels, each with its associated markers and latest values.
-For each panel, provide a detailed, friendly but expert-level set of recommendations:
-— What dietary changes to consider
-— Which lifestyle or exercise habits to adopt
-— Any supplements or follow-up actions
+You are a board-certified clinical nutritionist and medical expert.
+For each lab panel below, provide concise, evidence-based recommendations in three clear sections:
+1) Dietary Changes
+2) Lifestyle & Exercise
+3) Supplements & Follow-Up
+Be friendly, precise, and actionable.
 Focus purely on “what to do” advice based on the marker names and values.
 `.trim();
   let userPrompt = "";
@@ -94,7 +94,7 @@ Focus purely on “what to do” advice based on the marker names and values.
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "gpt-4o-turbo",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -120,10 +120,11 @@ Focus purely on “what to do” advice based on the marker names and values.
   const aiJson = await aiRes.json();
   const content = aiJson.choices?.[0]?.message?.content || "";
   // 7) Return the full narrative back to the client
-  return new Response(JSON.stringify({
-    insights: content
-  }), {
+  return new Response(content, {
     status: 200,
-    headers: CORS
+    headers: {
+      ...CORS,
+      "Content-Type": "text/plain; charset=utf-8"
+    }
   });
 });

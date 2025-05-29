@@ -1,7 +1,7 @@
 -- 1) Enable pgcrypto
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 3) Users + seed admin
+-- 2) Users + seed admin
 CREATE TABLE public.users (
   id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   email         TEXT         NOT NULL UNIQUE,
@@ -23,7 +23,7 @@ VALUES (
 );
 GRANT SELECT, INSERT, UPDATE ON public.users TO anon, service_role;
 
--- 4) Panels
+-- 3) Panels
 CREATE TABLE public.panels (
   id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT         NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE public.panels (
 );
 GRANT SELECT, INSERT, UPDATE ON public.panels TO anon, service_role;
 
--- 5) Uploads
+-- 4) Uploads
 CREATE TABLE public.uploads (
   id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_user_id  UUID         NOT NULL REFERENCES public.users(id),
@@ -44,7 +44,7 @@ CREATE TABLE public.uploads (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.uploads TO anon, service_role;
 
--- 6) Markers
+-- 5) Markers
 CREATE TABLE public.markers (
   id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   csvfile_id   UUID         NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
@@ -63,7 +63,7 @@ CREATE TABLE public.markers (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.markers TO anon, service_role;
 
--- 7) Insights
+-- 6) Insights
 CREATE TABLE public.insights (
   id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   marker_id   UUID         NOT NULL REFERENCES public.markers(id) ON DELETE CASCADE,
@@ -73,6 +73,19 @@ CREATE TABLE public.insights (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.insights TO anon, service_role;
 
+
+-- 7) PDF Reports
+CREATE TABLE public.pdf_reports (
+  id            UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID      NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  panel_id      UUID      NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
+  report_url    TEXT      NOT NULL,
+  generated_at  DATE      NOT NULL DEFAULT CURRENT_DATE
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON public.pdf_reports
+  TO anon, service_role;
 
 -- 8) Triggers & functions for updated_at
 
