@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
 import { UploadCloud, Users } from "lucide-react";
 import { redirect } from "next/navigation";
-import { useRouter } from "next/router";
 
 const FUNCTION_URL =
   "https://mlsgcukkleiuxkzbwrju.functions.supabase.co/upload-csv";
@@ -14,7 +13,6 @@ type Option = { id: string; name: string };
 
 export default function UploadsPage() {
   // Hooks must be called unconditionally at the top
-  const router = useRouter();
   const { data: session, status } = useSession();
   const [clients, setClients] = useState<Option[]>([]);
   const [clientId, setClientId] = useState("");
@@ -47,13 +45,10 @@ export default function UploadsPage() {
     );
   }
 
-  const { data: sessions } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push("/auth/signin");
-    },
-  });
-
+  
+  if (!session) {
+    redirect("/auth/signin");
+  }
   // Only allow admin users
   if (!session || (session.user as any).role !== "admin") {
     return (

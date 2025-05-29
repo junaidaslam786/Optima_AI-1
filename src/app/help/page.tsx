@@ -57,7 +57,7 @@ export default function HelpPage() {
               placeholder="Comment"
               value={concern}
               onChange={(e) => setConcern(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              className="flex-1 text-gray-600 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
               required
             />
             <button

@@ -69,7 +69,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 flex items-center justify-center p-6">
+    <div className="w-full bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 flex items-center justify-center p-6">
       <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-2xl max-w-md w-full p-8">
         <h1 className="text-3xl font-bold text-indigo-700 text-center mb-6">
           Create Your Account
@@ -82,7 +82,7 @@ export default function SignupPage() {
             value={form.email}
             onChange={onChange}
             required
-            className="w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
+            className="w-full text-gray-600 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
           />
 
           <div className="relative">
@@ -93,7 +93,7 @@ export default function SignupPage() {
               value={form.password}
               onChange={onChange}
               required
-              className="w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
+              className="w-full text-gray-600 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
             />
             <button
               type="button"
@@ -111,7 +111,7 @@ export default function SignupPage() {
             value={form.name}
             onChange={onChange}
             required
-            className="w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
+            className="w-full text-gray-600 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
           />
 
           <input
@@ -120,7 +120,7 @@ export default function SignupPage() {
             placeholder="Address (optional)"
             value={form.address}
             onChange={onChange}
-            className="w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
+            className="w-full text-gray-600 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
           />
 
           {error && (
