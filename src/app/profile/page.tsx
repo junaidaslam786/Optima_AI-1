@@ -92,7 +92,7 @@ export default function ProfilePage() {
 
   return (
     <div className="w-full bg-gray-50 flex items-center justify-center">
-      <div className="w-full space-y-6 w-full max-w-4xl">
+      <div className="w-full space-y-6 max-w-4xl">
         <h1 className="text-3xl font-bold text-gray-600">My Profile</h1>
 
         {/* Personal Information */}
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                 <input
                   name="dob"
                   type="date"
-                  value={form.dob}
+                  value={form.dob || ""}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-gray-600 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
@@ -155,7 +155,7 @@ export default function ProfilePage() {
                 </label>
                 <input
                   name="address"
-                  value={form.address}
+                  value={form.address || ""}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-gray-600 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${

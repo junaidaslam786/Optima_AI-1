@@ -6,8 +6,10 @@ import { useSession } from "next-auth/react";
 import { UploadCloud, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 
+const function_url = "https://fofmafnvjzivhwedlhjm.functions.supabase.co/";
+
 const FUNCTION_URL =
-  "https://mlsgcukkleiuxkzbwrju.functions.supabase.co/upload-csv";
+  `${function_url}upload-csv`;
 
 type Option = { id: string; name: string };
 

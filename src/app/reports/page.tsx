@@ -8,20 +8,31 @@ import { useRouter } from "next/navigation";
 
 export default function ReportsPage() {
   const router = useRouter();
-  const { data: sessions } = useSession({
+  useSession({
     required: true,
     onUnauthenticated() {
       router.push("/auth/signin");
     },
   });
   const { data: session } = useSession();
-  const userId = session?.user.id!;
-  const userName = session?.user.name!;
-  const userEmail = session?.user.email!;
-  const { data: reports, error, isLoading, mutate } = useReports(userId);
+  const userId = session?.user?.id;
+  const userName = session?.user?.name;
+  const userEmail = session?.user?.email;
+  const { data: reports, error, isLoading, mutate } = useReports(userId ?? "");
 
   if (isLoading) return <p>Loading reports…</p>;
-  if (error) return <p className="text-red-500">{error.error || error}</p>;
+  if (error) {
+    // extract a human‐readable message
+    const err = error as any;
+    const msg =
+      err.info?.message ||
+      err.info?.error ||
+      // fallback to the Error.message property
+      error.message ||
+      // ultimate fallback
+      String(error);
+    return <p className="text-red-500">{msg}</p>;
+  }
 
   async function handleGenerate() {
     // 1) pull your dashboard snapshot
@@ -49,8 +60,15 @@ export default function ReportsPage() {
     await mutate();
   }
 
+  // Define a type for report objects
+  type Report = {
+    generated_at: string;
+    report_url: string;
+    // add other fields if needed
+  };
+
   // Map for the past‐reports list
-  const past = (reports || []).map((r: any) => ({
+  const past = (reports || []).map((r: Report) => ({
     date: new Date(r.generated_at).toLocaleDateString(),
     href: r.report_url,
   }));
