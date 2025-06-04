@@ -1,13 +1,13 @@
 // app/auth/layout.tsx
-'use client'
-import React from 'react'
+"use client";
+import React from "react";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full flex items-center justify-center p-6">
-      <div className="bg-white backdrop-blur-md bg-opacity-80 rounded-xl shadow-xl p-8 max-w-md w-full">
+    <div className="w-full min-h-screen flex items-center justify-center bg-indigo-50 py-4">
+      <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-xl w-full max-w-4xl">
         {children}
       </div>
     </div>
-  )
+  );
 }

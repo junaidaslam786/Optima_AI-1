@@ -1,10 +1,11 @@
+// app/auth/signin/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SigninPage() {
   const router = useRouter();
@@ -19,80 +20,108 @@ export default function SigninPage() {
     setError(null);
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
 
-    if (result && result.error) {
-      setError(result.error);
+      if (result && result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch session to determine user role
+      const session = await getSession();
+      const role = (session?.user as any)?.role;
+
+      // Redirect based on role
+      if (role === "admin") {
+        router.push("/uploads");
+      } else {
+        router.push("/");
+      }
+    } catch (err: any) {
+      setError("An unexpected error occurred.");
       setLoading(false);
-      return;
-    }
-
-    // Fetch session to determine user role
-    const session = await getSession();
-    const role = (session?.user as any)?.role;
-
-    // Redirect based on role
-    if (role === "admin") {
-      router.push("/uploads");
-    } else {
-      router.push("/");
     }
   }
 
   return (
-    <div className="w-full bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 flex items-center justify-center p-6">
-      <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-xl max-w-md w-full p-8">
-        <h1 className="text-3xl font-bold text-indigo-700 text-center mb-6">
-          Sign In
+    <div className="h-[80vh] flex flex-col md:flex-row">
+      {/* Left Panel */}
+      <div className="w-full md:w-1/2 bg-cyan-600 text-white rounded-l-xl p-10 flex flex-col justify-center">
+        <h2 className="text-3xl font-bold mb-4">Don&apos;t have an account?</h2>
+        <p className="mb-6">
+          Purchase one of our kits and we will send you access details so you
+          can log into our dashboard.
+        </p>
+        <Link href="/auth/signup">
+          <button className="mt-auto bg-cyan-500 hover:bg-cyan-700 text-white font-medium py-2 px-6 rounded-full transition">
+            Sign Up
+          </button>
+        </Link>
+      </div>
+
+      {/* Right Panel (Form) */}
+      <div className="w-full md:w-1/2 bg-indigo-100 rounded-r-xl p-10 flex flex-col justify-center">
+        <h1 className="text-3xl font-bold text-cyan-700 mb-6">
+          Welcome, sign in
         </h1>
         <form onSubmit={onSubmit} className="space-y-5">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full text-gray-600 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
-          />
-          <div className="relative">
+          <div>
+            <label htmlFor="email" className="block text-gray-700 mb-1">
+              Email Address
+            </label>
             <input
+              id="email"
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full text-gray-800 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="relative">
+            <label htmlFor="password" className="block text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              id="password"
               name="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder="Please enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full text-gray-600 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white bg-opacity-80"
+              className="w-full text-gray-800 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-[70%] transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
             >
-              {showPassword ? <EyeOff /> : <Eye />}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
 
-          {error && <p className="text-center text-red-500">{error}</p>}
+          {error && (
+            <p className="text-center text-red-500 font-medium">{error}</p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50"
+            className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-cyan-500 transition disabled:opacity-50"
           >
             {loading ? "Signing In…" : "Sign In"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-gray-700">
-          Don't have an account?{" "}
-          <Link href="/auth/signup" className="text-indigo-600 hover:underline">
-            Sign Up
-          </Link>
-        </p>
       </div>
     </div>
   );

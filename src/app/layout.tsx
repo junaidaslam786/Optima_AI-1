@@ -18,13 +18,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
         <ClientProvider>
-          <header className="fixed top-0 inset-x-0 h-16 bg-white shadow z-50">
+          <header className="fixed top-0 inset-x-0 h-20 bg-white shadow z-50">
             <div className="max-w-7xl mx-auto h-full px-8 flex items-center justify-between">
               <Image
                 src="/optima.png"
                 alt="Optima.AI"
-                width={160}
-                height={44}
+                width={218}
+                height={60}
                 className="object-contain"
               />
               <Navbar />

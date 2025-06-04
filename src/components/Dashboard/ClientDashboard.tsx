@@ -6,7 +6,10 @@ import { PageHeader } from "./PageHeader";
 import { HormonesSection, Marker } from "./HormonesSection";
 import { InfoCard } from "./InfoCard";
 
-interface Panel { id: string; name: string }
+interface Panel {
+  id: string;
+  name: string;
+}
 interface RawMarker {
   id: string;
   panel_id: string;
@@ -22,20 +25,24 @@ type ByPanel = Record<string, Marker[]>;
 interface Props {
   panels: Panel[];
   markers: RawMarker[];
-  insights: string;
+  insights: string; // raw markdown from your Edge Function
 }
 
 export function ClientDashboard({ panels, markers, insights }: Props) {
-  // Optional: keep in state if you want to re-render off localStorage on mount
+  // Build a lookup from panel_id → panel_name
   const [panelMap] = useState(() =>
-    panels.reduce((m, p) => ({ ...m, [p.id]: p.name }), {} as Record<string,string>)
+    panels.reduce((obj, p) => {
+      obj[p.id] = p.name;
+      return obj;
+    }, {} as Record<string, string>)
   );
 
+  // Group markers by panel_id
   const [byPanel] = useState<ByPanel>(() => {
-    const bp: ByPanel = {};
+    const result: ByPanel = {};
     markers.forEach((m) => {
-      bp[m.panel_id] = bp[m.panel_id] ?? [];
-      bp[m.panel_id].push({
+      if (!result[m.panel_id]) result[m.panel_id] = [];
+      result[m.panel_id].push({
         id: m.id,
         panel_id: m.panel_id,
         value: m.value,
@@ -46,23 +53,51 @@ export function ClientDashboard({ panels, markers, insights }: Props) {
         status: m.status,
       });
     });
-    return bp;
+    return result;
   });
 
-  useEffect(() => {
-    // Write everything to localStorage on mount or whenever these props change
-    localStorage.setItem("dashboard.panels", JSON.stringify(panels));
-    localStorage.setItem("dashboard.markers", JSON.stringify(markers));
-    localStorage.setItem("dashboard.insights", insights);
-  }, [panels, markers, insights]);
+  //
+  // ─── PARSE INSIGHTS INTO panelInsights MAP ───────────────────────────────────
+  //
+  const [panelInsights] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    const rawSections = insights.split(/^###\s+/m);
+    for (let i = 1; i < rawSections.length; i++) {
+      const section = rawSections[i];
+      const firstLineBreak = section.indexOf("\n");
+      if (firstLineBreak === -1) continue;
+      const panelName = section.slice(0, firstLineBreak).trim();
+      const body = section.slice(firstLineBreak + 1).trim();
+      map[panelName] = body;
+    }
+    return map;
+  });
 
   return (
-    <div className="flex">
-      <div className="flex-1">
+    <div className="w-full flex flex-col md:flex-row">
+      <div className="w-full">
         <PageHeader />
-        <HormonesSection byPanel={byPanel} panelMap={panelMap} />
+        {/* Pass panelInsights down to HormonesSection */}
+        <HormonesSection
+          byPanel={byPanel}
+          panelMap={panelMap}
+          panelInsights={panelInsights}
+        />
       </div>
-      <InfoCard body={insights} />
+
+      {/* InfoCards (one per panel) can remain here... */}
+      <div className="w-full flex flex-col">
+        {panels.map((p) => {
+          const insightMarkdown = panelInsights[p.name] ?? "";
+          return (
+            <InfoCard
+              key={p.id}
+              title={p.name}
+              body={insightMarkdown || "No insights available for this panel."}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

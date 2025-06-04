@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }) {
 export async function DELETE(request: Request, { params }) {
   const { id } = params;
 
-  // 1) Fetch the record so we know the file path
+  // 1) Fetch the record to get the `report_url` (so we can remove from storage)
   const { data: record, error: fetchError } = await supabaseAdmin
     .from("pdf_reports")
     .select("report_url")
@@ -32,13 +32,15 @@ export async function DELETE(request: Request, { params }) {
     return NextResponse.json({ error: fetchError.message }, { status: 404 });
   }
 
-  // 2) Delete the file from storage (if using Supabase Storage)
-  const filePath = record.report_url.split("/storage/v1/object/public/")[1];
+  // 2) Extract the storage path. publicUrl has the form:
+  //    https://<project>.supabase.co/storage/v1/object/public/reports/<userId>/<timestamp>.pdf
+  //    We need to split on "/object/public/" and take the latter part:
+  const filePath = record.report_url.split("/object/public/")[1];
   if (filePath) {
     await supabaseAdmin.storage.from("reports").remove([filePath]);
   }
 
-  // 3) Delete the DB record
+  // 3) Delete the DB row
   const { error: deleteError } = await supabaseAdmin
     .from("pdf_reports")
     .delete()

@@ -19,7 +19,7 @@ export function PastReportsList({ reports }: { reports: Report[] }) {
             <Link
               href={href}
               target="_blank"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
             >
               Download
             </Link>

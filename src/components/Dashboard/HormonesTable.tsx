@@ -1,10 +1,11 @@
+// components/Dashboard/HormonesTable.tsx
 import { TableRow } from "./TableRow";
 
 interface Marker {
   id: string;
   value: number;
-  normal_low: number;
-  normal_high: number;
+  normal_low: number | null;
+  normal_high: number | null;
   unit: string;
   marker: string;
   status: string;
@@ -26,15 +27,31 @@ export function HormonesTable({ markers }: HormonesTableProps) {
         </tr>
       </thead>
       <tbody>
-        {markers.map((row) => (
-          <TableRow
-            key={row.id}
-            marker={row.marker}
-            result={`${row.normal_high} (${row.unit})`}
-            range={row.normal_low + " - " + row.normal_high}
-            status={row.status}
-          />
-        ))}
+        {markers.map((row) => {
+          let range: string;
+          const low = row.normal_low;
+          const high = row.normal_high;
+
+          if (low == null && high != null) {
+            range = `<${high}`;
+          } else if (low != null && high == null) {
+            range = `${low}<`;
+          } else if (low != null && high != null) {
+            range = `${low} - ${high}`;
+          } else {
+            range = "-";
+          }
+
+          return (
+            <TableRow
+              key={row.id}
+              marker={row.marker}
+              result={`${row.value} ${row.unit}`}
+              range={range}
+              status={row.status}
+            />
+          );
+        })}
       </tbody>
     </table>
   );

@@ -2,10 +2,11 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { buildPdf } from "@/lib/pdf";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET(request: Request) {
+  // List all reports for a given user_id query param
   const url = new URL(request.url);
   const user_id = url.searchParams.get("user_id");
   if (!user_id) {
@@ -26,14 +27,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // 1) Make sure the user is signed in
+    // 1) Ensure the user is authenticated
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
     const user_id = session.user.id;
 
-    // 2) Grab your panels/markers/insights from the JSON body
+    // 2) Read JSON body (panels, markers, insights). We expect panels.length === 1 now.
     const { panels, markers, insights } = await request.json();
     if (!panels || !markers) {
       return NextResponse.json(
@@ -42,16 +43,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3) Build the PDF buffer
+    // 3) Build the PDF buffer (server-side)
     const pdfBuffer = await buildPdf({
       userName: session.user.name || "",
       userEmail: session.user.email || "",
-      panels,
-      markers,
-      insights,
+      panels,                           // e.g. [{ id: panelId, name: panelName }]
+      markers,                          // array of Marker objects
+      insights,                         // string with AI insights
     });
 
-    // 4) Upload to Supabase Storage
+    // 4) Upload to Supabase Storage under the "reports" bucket
+    //    We use `${user_id}/${Date.now()}.pdf` as a path
     const fileName = `${user_id}/${Date.now()}.pdf`;
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from("reports")
@@ -64,12 +66,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    // 5) Get the public URL
+    // 5) Get the public URL of the uploaded file
     const { data: urlData } = supabaseAdmin.storage
       .from("reports")
       .getPublicUrl(uploadData.path);
+    // urlData.publicUrl is like "https://<project>.supabase.co/storage/v1/object/public/reports/…"
 
-    // 6) Insert into pdf_reports, now with a real user_id
+    // 6) Insert a new row into `pdf_reports`
+    //    Table schema should be:
+    //      id (UUID),
+    //      user_id (UUID),
+    //      report_url (text),
+    //      generated_at (timestamp)
     const now = new Date().toISOString();
     const { data: record, error: dbError } = await supabaseAdmin
       .from("pdf_reports")
@@ -78,6 +86,7 @@ export async function POST(request: Request) {
         report_url: urlData.publicUrl,
         generated_at: now,
       })
+      .select()
       .single();
 
     if (dbError) {
@@ -85,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    // 7) Return the new row
+    // 7) Return the new row (including id, user_id, report_url, generated_at)
     return NextResponse.json(record, { status: 201 });
   } catch (err: any) {
     console.error("Unexpected /api/reports error:", err);

@@ -8,7 +8,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       : "bg-red-100 text-red-800";
   return (
     <span
-      className={`px-2 py-0.5 text-xs font-medium rounded-full ${colorClass}`}
+      className={`px-2 py-0.5 text-sm font-medium rounded-full ${colorClass}`}
     >
       {status}
     </span>
