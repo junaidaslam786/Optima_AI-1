@@ -1,4 +1,3 @@
-// Setup type definitions for built-in Supabase Runtime APIs
 // supabase/functions/generate-panel-insights/index.ts
 // Setup type definitions for Supabase Edge runtime
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";

@@ -1,4 +1,3 @@
-// Setup type definitions for built-in Supabase Runtime APIs
 // supabase/functions/upload-csv/index.ts
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -64,7 +63,7 @@ Deno.serve(async (req)=>{
     const uploadMetaRes = await fetch(`${SUPABASE_URL}/rest/v1/uploads`, {
       method: "POST",
       headers: {
-        "Authorization": ` Bearer ${SERVICE_ROLE_KEY}`,
+        "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
         "apikey": SERVICE_ROLE_KEY,
         "Content-Type": "application/json",
         "Prefer": "return=representation"
