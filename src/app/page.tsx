@@ -21,7 +21,7 @@ export default async function HomePage() {
 
   if (mErr || !markers) {
     console.error(mErr);
-    return <p className="text-red-600">Error loading your markers.</p>;
+    return <p className="text-secondary">Error loading your markers.</p>;
   }
 
   const { data: panels, error: pErr } = await supabaseAdmin
@@ -29,7 +29,7 @@ export default async function HomePage() {
     .select("id,name");
   if (pErr || !panels) {
     console.error(pErr);
-    return <p className="text-red-600">Error loading panel info.</p>;
+    return <p className="text-secondary">Error loading panel info.</p>;
   }
 
   const { data: rawInsights, error: iErr } =
@@ -40,10 +40,12 @@ export default async function HomePage() {
   const insightsMarkdown = (rawInsights as string) || "";
 
   return (
-    <ClientDashboard
-      panels={panels}
-      markers={markers}
-      insights={insightsMarkdown}
-    />
+    <div className="w-full min-h-screen pb-12">
+      <ClientDashboard
+        panels={panels}
+        markers={markers}
+        insights={insightsMarkdown}
+      />
+    </div>
   );
 }

@@ -1,0 +1,5 @@
+[functions."generate-insights"]
+enabled    = true
+verify_jwt = false
+import_map = "deno.json"
+entrypoint = "index.ts"

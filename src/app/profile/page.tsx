@@ -35,7 +35,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user on mount once session is ready
   useEffect(() => {
     if (status !== "authenticated") return;
     const id = (session.user as any).id;
@@ -50,15 +49,14 @@ export default function ProfilePage() {
           address: data.address,
         });
       })
-      .catch((err) => {
-        console.error(err);
+      .catch(() => {
         setError("Failed to load your profile.");
       })
       .finally(() => setLoading(false));
   }, [status, session]);
 
   if (status === "loading" || loading) {
-    return <p className="p-6 text-center">Loading your profile…</p>;
+    return <p className="p-6 text-center text-primary">Loading your profile…</p>;
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,7 +71,6 @@ export default function ProfilePage() {
     const res = await fetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      // only send editable fields
       body: JSON.stringify(form),
     });
 
@@ -91,19 +88,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="w-full bg-gray-50 flex items-center justify-center">
+    <div className="w-full flex items-center justify-center">
       <div className="w-full space-y-6 max-w-4xl">
-        <h1 className="text-3xl font-bold text-gray-600">My Profile</h1>
+        <h1 className="text-3xl font-bold text-primary">My Profile</h1>
 
-        {/* Personal Information */}
         <div className="w-full flex flex-row gap-8">
-          <div className="w-full bg-white rounded-xl shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-600">
+          <div className="w-full bg-secondary/10 rounded-xl shadow p-6">
+            <h2 className="text-xl font-semibold mb-4 text-primary">
               Personal Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-600">
+                <label className="block text-sm font-medium text-primary">
                   Name
                 </label>
                 <input
@@ -111,14 +107,14 @@ export default function ProfilePage() {
                   value={form.name}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full text-gray-600 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
-                    editing ? "bg-white" : "bg-gray-100 cursor-not-allowed"
+                  className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
+                    editing ? "bg-white" : "bg-secondary/5 cursor-not-allowed"
                   }`}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-gray-600 text-sm font-medium">
+                <label className="block text-sm font-medium text-primary">
                   Email
                 </label>
                 <input
@@ -127,14 +123,14 @@ export default function ProfilePage() {
                   value={form.email}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full text-gray-600 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
-                    editing ? "bg-white" : "bg-gray-100 cursor-not-allowed"
+                  className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
+                    editing ? "bg-white" : "bg-secondary/5 cursor-not-allowed"
                   }`}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-gray-600 text-sm font-medium">
+                <label className="block text-sm font-medium text-primary">
                   Date of Birth
                 </label>
                 <input
@@ -143,14 +139,14 @@ export default function ProfilePage() {
                   value={form.dob || ""}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full text-gray-600 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
-                    editing ? "bg-white" : "bg-gray-100 cursor-not-allowed"
+                  className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
+                    editing ? "bg-white" : "bg-secondary/5 cursor-not-allowed"
                   }`}
                 />
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="block text-gray-600 text-sm font-medium">
+                <label className="block text-sm font-medium text-primary">
                   Address
                 </label>
                 <input
@@ -158,49 +154,41 @@ export default function ProfilePage() {
                   value={form.address || ""}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full text-gray-600 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
-                    editing ? "bg-white" : "bg-gray-100 cursor-not-allowed"
+                  className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
+                    editing ? "bg-white" : "bg-secondary/5 cursor-not-allowed"
                   }`}
                 />
               </div>
             </div>
 
-            {/* Edit / Save Buttons */}
             <div className="mt-6">
               {editing ? (
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  className="px-6 py-2 bg-secondary text-white rounded-lg hover:bg-tertiary disabled:opacity-50"
                 >
                   {saving ? "Saving…" : "Save Changes"}
                 </button>
               ) : (
                 <button
                   onClick={() => setEditing(true)}
-                  className="px-6 py-2 bg-indigo-200 text-indigo-800 rounded-lg hover:bg-indigo-300"
+                  className="px-6 py-2 bg-secondary/30 text-secondary rounded-lg hover:bg-secondary/40"
                 >
                   Edit
                 </button>
               )}
               {error && (
-                <p className="mt-2 text-red-500 font-medium">{error}</p>
+                <p className="mt-2 text-secondary font-medium">{error}</p>
               )}
             </div>
           </div>
 
-          {/* Subscription (read-only) */}
-          <div className="w-full bg-white text-gray-600 rounded-xl shadow p-6 max-w-sm">
+          <div className="w-full bg-secondary/10 text-primary rounded-xl shadow p-6 max-w-sm">
             <h2 className="text-xl font-semibold mb-4">Subscription</h2>
-            <p className="text-gray-700 mb-1">
+            <p className="mb-1">
               <span className="font-medium">Plan:</span> {user?.subscription}
             </p>
-            {/* If you have a next-delivery date field, you could show it here:
-            <p className="text-gray-700">
-              <span className="font-medium">Next Delivery:</span>{" "}
-              {user.nextDeliveryDate}
-            </p>
-          */}
           </div>
         </div>
       </div>

@@ -1,10 +1,13 @@
 // components/Dashboard/ClientDashboard.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { PageHeader } from "./PageHeader";
-import { HormonesSection, Marker } from "./HormonesSection";
+import { HormonesTable } from "./HormonesTable";
+import { Callout } from "./Callout";
 import { InfoCard } from "./InfoCard";
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 
 interface Panel {
   id: string;
@@ -20,45 +23,32 @@ interface RawMarker {
   marker: string;
   status: string;
 }
-type ByPanel = Record<string, Marker[]>;
+type ByPanel = Record<string, RawMarker[]>;
 
 interface Props {
   panels: Panel[];
   markers: RawMarker[];
-  insights: string; // raw markdown from your Edge Function
+  insights: string;
 }
 
 export function ClientDashboard({ panels, markers, insights }: Props) {
-  // Build a lookup from panel_id → panel_name
-  const [panelMap] = useState(() =>
-    panels.reduce((obj, p) => {
-      obj[p.id] = p.name;
-      return obj;
-    }, {} as Record<string, string>)
-  );
+  const router = useRouter();
+  const [panelMap] = useState(() => {
+    return panels.reduce((acc, panel) => {
+      acc[panel.id] = panel.name;
+      return acc;
+    }, {} as Record<string, string>);
+  });
 
-  // Group markers by panel_id
   const [byPanel] = useState<ByPanel>(() => {
     const result: ByPanel = {};
     markers.forEach((m) => {
       if (!result[m.panel_id]) result[m.panel_id] = [];
-      result[m.panel_id].push({
-        id: m.id,
-        panel_id: m.panel_id,
-        value: m.value,
-        normal_low: m.normal_low,
-        normal_high: m.normal_high,
-        unit: m.unit,
-        marker: m.marker,
-        status: m.status,
-      });
+      result[m.panel_id].push(m);
     });
     return result;
   });
 
-  //
-  // ─── PARSE INSIGHTS INTO panelInsights MAP ───────────────────────────────────
-  //
   const [panelInsights] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     const rawSections = insights.split(/^###\s+/m);
@@ -73,28 +63,69 @@ export function ClientDashboard({ panels, markers, insights }: Props) {
     return map;
   });
 
-  return (
-    <div className="w-full flex flex-col md:flex-row">
-      <div className="w-full">
-        <PageHeader />
-        {/* Pass panelInsights down to HormonesSection */}
-        <HormonesSection
-          byPanel={byPanel}
-          panelMap={panelMap}
-          panelInsights={panelInsights}
-        />
-      </div>
+  function extractFirstSentence(fullText: string): string {
+    const trimmed = fullText.trim();
+    if (!trimmed) return "";
+    const periodIndex = trimmed.indexOf(". ");
+    if (periodIndex !== -1) {
+      return trimmed.slice(0, periodIndex + 1).trim();
+    }
+    const newlineIndex = trimmed.indexOf("\n");
+    if (newlineIndex !== -1) {
+      return trimmed.slice(0, newlineIndex).trim();
+    }
+    return trimmed;
+  }
 
-      {/* InfoCards (one per panel) can remain here... */}
-      <div className="w-full flex flex-col">
-        {panels.map((p) => {
-          const insightMarkdown = panelInsights[p.name] ?? "";
+  function handleClick(panel_id: string) {
+    const name = panelMap[panel_id] || "Unnamed Panel";
+    Cookies.set("selectedPanelId", panel_id);
+    Cookies.set("selectedPanelName", name);
+    router.push("/results");
+  }
+
+  return (
+    <div className="w-full">
+      <PageHeader />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
+        {panels.map((panel) => {
+          const panelName = panelMap[panel.id] || "Unnamed Panel";
+          const thisPanelMarkers = byPanel[panel.id] || [];
+          const fullInsight = panelInsights[panelName] || "";
+          let firstSentence = extractFirstSentence(fullInsight);
+          if (!firstSentence) {
+            firstSentence = `Here are your latest results for “${panelName}.”`;
+          }
+
           return (
-            <InfoCard
-              key={p.id}
-              title={p.name}
-              body={insightMarkdown || "No insights available for this panel."}
-            />
+            <React.Fragment key={panel.id}>
+              <section
+                onClick={() => handleClick(panel.id)}
+                className="cursor-pointer hover:shadow-lg bg-primary/10 shadow rounded-lg p-6 transition"
+              >
+                <h2 className="text-lg font-semibold text-primary mb-4">
+                  {panelName}
+                </h2>
+                <HormonesTable
+                  markers={thisPanelMarkers.map((m) => ({
+                    id: m.id,
+                    value: m.value,
+                    normal_low: m.normal_low,
+                    normal_high: m.normal_high,
+                    unit: m.unit,
+                    marker: m.marker,
+                    status: m.status,
+                  }))}
+                />
+                <Callout>{firstSentence}</Callout>
+              </section>
+              <div>
+                <InfoCard
+                  title={panelName}
+                  body={fullInsight || "No insights available for this panel."}
+                />
+              </div>
+            </React.Fragment>
           );
         })}
       </div>

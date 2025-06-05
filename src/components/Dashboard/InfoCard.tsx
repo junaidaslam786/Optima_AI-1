@@ -12,12 +12,9 @@ interface InfoCardProps {
 
 export function InfoCard({ title, body }: InfoCardProps) {
   return (
-    <aside className="w-full bg-cyan-50 p-6 rounded-lg ml-6 mb-6">
-      {/* Render the panel name as the card title */}
-      <h2 className="text-xl font-medium text-gray-800 font-semibold mb-4">
-        {title}
-      </h2>
-      <div className="prose prose-sm text-gray-700 space-y-4">
+    <aside className="w-full bg-primary/10 p-6 rounded-lg ml-6 mb-6">
+      <h2 className="text-xl font-medium text-primary mb-4">{title}</h2>
+      <div className="prose prose-secondary space-y-4">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {body}
         </ReactMarkdown>

@@ -1,3 +1,4 @@
+// components/Reports/HealthScoreChart.tsx
 "use client";
 
 import { Line } from "react-chartjs-2";
@@ -12,7 +13,6 @@ import {
   Legend,
 } from "chart.js";
 
-// register Chart.js pieces
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -34,8 +34,8 @@ export function HealthScoreChart() {
         tension: 0.3,
         borderWidth: 2,
         pointRadius: 4,
-        borderColor: "#3B82F6",
-        backgroundColor: "#3B82F6",
+        borderColor: "var(--color-primary)",
+        backgroundColor: "var(--color-primary)",
       },
     ],
   };
@@ -52,14 +52,14 @@ export function HealthScoreChart() {
         max: 110,
         ticks: {
           stepSize: 20,
-          color: "#374151",
+          color: "var(--color-secondary)",
           font: { size: 12 },
         },
-        grid: { color: "#E5E7EB" },
+        grid: { color: "var(--color-tertiary)/20" },
       },
       x: {
         ticks: {
-          color: "#374151",
+          color: "var(--color-secondary)",
           font: { size: 12 },
         },
         grid: { display: false },
@@ -68,8 +68,8 @@ export function HealthScoreChart() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-8">
-      <h2 className="text-xl font-medium text-gray-800 mb-4">Health Score</h2>
+    <div className="bg-secondary/10 rounded-lg shadow p-6 mb-8">
+      <h2 className="text-xl font-medium text-primary mb-4">Health Score</h2>
       <Line data={data} options={options} />
     </div>
   );

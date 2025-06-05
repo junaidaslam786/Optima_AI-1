@@ -18,12 +18,12 @@ interface HormonesTableProps {
 export function HormonesTable({ markers }: HormonesTableProps) {
   return (
     <table className="w-full border-collapse rounded-lg overflow-hidden">
-      <thead className="bg-cyan-100">
+      <thead className="bg-primary/20">
         <tr>
-          <th className="px-4 py-2 text-left text-gray-700">Marker</th>
-          <th className="px-4 py-2 text-left text-gray-700">Result</th>
-          <th className="px-4 py-2 text-left text-gray-700">Reference Range</th>
-          <th className="px-4 py-2 text-left text-gray-700">Status</th>
+          <th className="px-4 py-2 text-left text-primary">Marker</th>
+          <th className="px-4 py-2 text-left text-primary">Result</th>
+          <th className="px-4 py-2 text-left text-primary">Reference Range</th>
+          <th className="px-4 py-2 text-left text-primary">Status</th>
         </tr>
       </thead>
       <tbody>

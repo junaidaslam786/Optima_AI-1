@@ -11,7 +11,6 @@ import { useMemo } from "react";
 export default function ReportsPage() {
   const router = useRouter();
 
-  // Redirect if not authenticated
   useSession({
     required: true,
     onUnauthenticated() {
@@ -33,27 +32,25 @@ export default function ReportsPage() {
 
   if (!reports && !error) {
     return (
-      <div className="w-full min-h-screen bg-gray-50 px-8 pb-12 flex items-center justify-center">
-        <p className="text-gray-700">Loading…</p>
+      <div className="w-full min-h-screen bg-tertiary/10 px-8 pb-12 flex items-center justify-center">
+        <p className="text-secondary">Loading…</p>
       </div>
     );
   }
 
-  // Once loaded, if there are no reports:
   if (Array.isArray(reports) && reports.length === 0) {
     return (
-      <div className="w-full min-h-screen bg-gray-50 px-8 pb-12 flex items-center justify-center">
-        <p className="text-red-600 text-lg font-medium">
+      <div className="w-full min-h-screen bg-tertiary/10 px-8 pb-12 flex items-center justify-center">
+        <p className="text-secondary text-lg font-medium">
           Oops! You don&apos;t have any previous reports
         </p>
       </div>
     );
   }
 
-  // Otherwise, render the chart and list
   return (
-    <div className="w-full min-h-screen bg-gray-50 px-8 pb-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Reports</h1>
+    <div className="w-full min-h-screen px-8 pb-12">
+      <h1 className="text-3xl font-bold text-primary mb-6">Reports</h1>
       <HealthScoreChart />
       <PastReportsList reports={past} />
     </div>

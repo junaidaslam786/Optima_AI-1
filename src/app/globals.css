@@ -1,21 +1,21 @@
+/* styles/globals.css */
+:root {
+  --color-primary-rgb:   11 43 64;
+  --color-secondary-rgb: 29 89 115;
+  --color-tertiary-rgb:  125 170 198;
+  --font-primary: var(--font-poppins);
+}
+
+.dark {
+  --color-primary-rgb:   255 255 255;
+  --color-secondary-rgb: 0   0   0;
+  --color-tertiary-rgb:  128 128 128;
+}
+
+html, body, #__next {
+  font-family: var(--font-primary), sans-serif;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
