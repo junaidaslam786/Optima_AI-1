@@ -36,7 +36,7 @@ export default function UploadsPage() {
   if (status === "loading") {
     return (
       <div className="w-full flex items-center justify-center">
-        <div className="p-12 flex items-center justify-center bg-gradient-to-br from-primary via-secondary to-tertiary">
+        <div className="p-12 flex items-center justify-center">
           <p className="text-secondary">Loading...</p>
         </div>
       </div>
@@ -49,7 +49,7 @@ export default function UploadsPage() {
   if (!session || (session.user as any).role !== "admin") {
     return (
       <div className="w-full flex items-center justify-center">
-        <div className="p-12 flex items-center justify-center bg-gradient-to-br from-primary via-secondary to-tertiary">
+        <div className="p-12 flex items-center justify-center">
           <p className="text-tertiary text-2xl font-semibold">
             Access Denied
           </p>
@@ -98,7 +98,7 @@ export default function UploadsPage() {
 
   return (
     <div className="w-full flex items-center justify-center">
-      <div className="w-1/2 p-12 flex items-center justify-center bg-gradient-to-br from-primary via-secondary to-tertiary rounded-lg">
+      <div className="w-1/2 p-12 flex items-center justify-center rounded-lg">
         <div className="max-w-lg w-full bg-primary/10 backdrop-blur-md dark:bg-primary/20 rounded-2xl shadow-2xl p-8">
           <div className="flex items-center mb-6">
             <UploadCloud className="h-8 w-8 text-primary" />

@@ -43,9 +43,10 @@ export function BiomarkerCard({
     setErrorDetail(null);
 
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_EDGE_FUNCTION_URL;
       const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      const FUNCTION_URL = `https://mlsgcukkleiuxkzbwrju.functions.supabase.co/marker-details`;
+      const FUNCTION_URL = `${SUPABASE_URL}/marker-details`;
+      console.log("url", FUNCTION_URL);
 
       const res = await fetch(FUNCTION_URL, {
         method: "POST",
