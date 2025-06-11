@@ -1,14 +1,11 @@
-// src/app/api/panels/[panelId]/route.ts
-
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
-  _request: NextRequest,
-  // Directly destructure 'params' and type it here
-  { params }: { params: { panelId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ panelId: string }> }
 ): Promise<NextResponse> {
-  const panelId = params.panelId; // Now 'panelId' is directly available
+  const { panelId } = await params;
 
   const { data, error } = await supabaseAdmin
     .from("panels")
@@ -28,10 +25,9 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  // Directly destructure 'params' and type it here
-  { params }: { params: { panelId: string } }
+  { params }: { params: Promise<{ panelId: string }> }
 ): Promise<NextResponse> {
-  const panelId = params.panelId; // Now 'panelId' is directly available
+  const { panelId } = await params;
   const updates = await request.json();
 
   const { data, error } = await supabaseAdmin
@@ -51,11 +47,10 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
-  // Directly destructure 'params' and type it here
-  { params }: { params: { panelId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ panelId: string }> }
 ): Promise<NextResponse> {
-  const panelId = params.panelId; // Now 'panelId' is directly available
+  const { panelId } = await params;
 
   const { error } = await supabaseAdmin
     .from("panels")
