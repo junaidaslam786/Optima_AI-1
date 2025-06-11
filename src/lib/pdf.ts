@@ -39,7 +39,6 @@ export async function buildPdf({
   const pageHeight = 792;
   const margin     = 40;
   const fontSize   = 12;
-  const lineHeight = fontSize * 1.2;
   const maxWidth   = pageWidth - margin * 2;
 
   // 3) Start on page 1

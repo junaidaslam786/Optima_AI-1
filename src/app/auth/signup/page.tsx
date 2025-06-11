@@ -1,42 +1,46 @@
-// app/auth/signup/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff } from "lucide-react";
 
-type Form = {
+interface SignupForm {
+  name: string;
   email: string;
   password: string;
   confirmPassword: string;
-  name: string;
-  role: string;
-  address?: string;
-  dob?: string;
-};
+  role: "client" | "admin";
+  address: string;
+  dob: string;
+}
+
+interface ApiResponse {
+  error?: string;
+}
 
 export default function SignupPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState<Form>({
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [form, setForm] = useState<SignupForm>({
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    name: "",
     role: "client",
     address: "",
     dob: "",
   });
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
+  const onChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-  async function onSubmit(e: React.FormEvent) {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError(null);
 
@@ -46,50 +50,51 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-
     try {
-      const res = await fetch("/api/auth/signup", {
+      const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name: form.name,
           email: form.email,
           password: form.password,
-          name: form.name,
           role: form.role,
           address: form.address,
           dob: form.dob,
         }),
       });
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error || "Signup failed");
+
+      const data: ApiResponse = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Signup failed");
       }
 
-      const signInResult = await signIn("credentials", {
+      const result = await signIn("credentials", {
         redirect: false,
         email: form.email,
         password: form.password,
       });
 
-      if (signInResult && "error" in signInResult) {
-        throw new Error(signInResult.error!);
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
       router.push("/");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col md:flex-row">
       <div className="w-full md:w-1/2 bg-primary text-white rounded-l-xl p-10 flex flex-col justify-center">
         <h2 className="text-3xl font-bold mb-4">Already have an account?</h2>
         <p className="mb-6">
-          If you already purchased one of our kits, just sign in. We&apos;ll get you straight
-          to your dashboard.
+          If you already purchased one of our kits, just sign in. We&apos;ll get
+          you straight to your dashboard.
         </p>
         <Link href="/auth/signin">
           <button className="mt-auto bg-secondary hover:bg-tertiary text-white font-medium py-2 px-6 rounded-full transition">
@@ -111,14 +116,12 @@ export default function SignupPage() {
               id="name"
               name="name"
               type="text"
-              placeholder="Your full name"
               value={form.name}
               onChange={onChange}
               required
               className="w-full text-primary px-4 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
             />
           </div>
-
           <div>
             <label htmlFor="email" className="block text-primary mb-1">
               Email Address
@@ -127,14 +130,12 @@ export default function SignupPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="you@example.com"
               value={form.email}
               onChange={onChange}
               required
               className="w-full text-primary px-4 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
             />
           </div>
-
           <div className="relative">
             <label htmlFor="password" className="block text-primary mb-1">
               Password
@@ -143,7 +144,6 @@ export default function SignupPage() {
               id="password"
               name="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
               value={form.password}
               onChange={onChange}
               required
@@ -157,30 +157,23 @@ export default function SignupPage() {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
-
           <div className="relative">
-            <label htmlFor="confirmPassword" className="block text-primary mb-1">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-primary mb-1"
+            >
               Confirm Password
             </label>
             <input
               id="confirmPassword"
               name="confirmPassword"
               type={showPassword ? "text" : "password"}
-              placeholder="Please confirm your password"
               value={form.confirmPassword}
               onChange={onChange}
               required
               className="w-full text-primary px-4 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-[70%] transform -translate-y-1/2 text-primary hover:text-primary/70 focus:outline-none"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
           </div>
-
           <div>
             <label htmlFor="address" className="block text-primary mb-1">
               Address
@@ -189,13 +182,11 @@ export default function SignupPage() {
               id="address"
               name="address"
               type="text"
-              placeholder="123 Main St, City, Country"
               value={form.address}
               onChange={onChange}
               className="w-full text-primary px-4 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
             />
           </div>
-
           <div>
             <label htmlFor="dob" className="block text-primary mb-1">
               Date of Birth
@@ -209,11 +200,9 @@ export default function SignupPage() {
               className="w-full text-primary px-4 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
             />
           </div>
-
           {error && (
             <p className="text-center text-secondary font-medium">{error}</p>
           )}
-
           <button
             type="submit"
             disabled={loading}

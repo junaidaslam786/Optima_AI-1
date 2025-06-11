@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 export default function HelpPage() {
   const [concern, setConcern] = useState("");
   const router = useRouter();
-  const { data: session } = useSession({
+  useSession({
     required: true,
     onUnauthenticated() {
       router.push("/auth/signin");

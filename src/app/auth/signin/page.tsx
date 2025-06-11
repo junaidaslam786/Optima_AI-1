@@ -1,51 +1,44 @@
-// app/auth/signin/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import type { Session } from "next-auth";
 
 export default function SigninPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-      });
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
 
-      if (result && result.error) {
-        setError(result.error);
-        setLoading(false);
-        return;
-      }
-
-      const session = await getSession();
-      const role = (session?.user as any)?.role;
-
-      if (role === "admin") {
-        router.push("/uploads");
-      } else {
-        router.push("/");
-      }
-    } catch {
-      setError("An unexpected error occurred.");
+    if (result?.error) {
+      setError(result.error);
       setLoading(false);
+      return;
     }
-  }
+
+    const session = (await getSession()) as Session & {
+      user: { role: string };
+    };
+    const role = session?.user.role;
+    const destination = role === "admin" ? "/uploads" : "/";
+    router.push(destination);
+  };
 
   return (
     <div className="h-[80vh] flex flex-col md:flex-row">
@@ -74,8 +67,6 @@ export default function SigninPage() {
             <input
               id="email"
               type="email"
-              name="email"
-              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -89,9 +80,7 @@ export default function SigninPage() {
             </label>
             <input
               id="password"
-              name="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Please enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -99,7 +88,7 @@ export default function SigninPage() {
             />
             <button
               type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
+              onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-[70%] transform -translate-y-1/2 text-primary hover:text-primary/70 focus:outline-none"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}

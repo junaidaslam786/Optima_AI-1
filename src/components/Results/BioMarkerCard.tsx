@@ -66,8 +66,8 @@ export function BiomarkerCard({
       }
       const text = await res.text();
       setDetail(text);
-    } catch (err: any) {
-      setErrorDetail(err.message);
+    } catch (err: unknown) {
+      setErrorDetail(err instanceof Error ? err.message : String(err));
     } finally {
       setLoadingDetail(false);
     }

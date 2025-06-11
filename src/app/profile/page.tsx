@@ -1,9 +1,8 @@
-// app/profile/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useSession } from "next-auth/react";
+import { Session } from "next-auth";
 
 interface User {
   id: string;
@@ -12,32 +11,37 @@ interface User {
   dob: string;
   address: string;
   subscription: string;
+  role: "client";
+}
+
+type ProfileForm = Omit<User, "id" | "subscription">;
+
+interface AuthSession extends Session {
+  user: User;
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const { data: session, status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push("/auth/signin");
-    },
-  });
+  const { data: sessionData, status } = useSession();
+  const session = sessionData as AuthSession | null;
 
   const [user, setUser] = useState<User | null>(null);
-  const [form, setForm] = useState<Omit<User, "id" | "subscription">>({
+  const [form, setForm] = useState<ProfileForm>({
     name: "",
     email: "",
     dob: "",
     address: "",
+    role: "client",
   });
-  const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
-    const id = (session.user as any).id;
+    if (status !== "authenticated" || !session) {
+      return;
+    }
+    const { id } = session.user;
     fetch(`/api/users/${id}`)
       .then((res) => res.json())
       .then((data: User) => {
@@ -47,45 +51,55 @@ export default function ProfilePage() {
           email: data.email,
           dob: data.dob,
           address: data.address,
+          role: "client",
         });
       })
       .catch(() => {
         setError("Failed to load your profile.");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+      });
   }, [status, session]);
 
   if (status === "loading" || loading) {
-    return <p className="p-6 text-center text-primary">Loading your profile…</p>;
+    return (
+      <p className="p-6 text-center text-primary">Loading your profile…</p>
+    );
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
+  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-  async function handleSave() {
-    if (!user) return;
+  const handleSave = async (): Promise<void> => {
+    if (!user) {
+      return;
+    }
     setSaving(true);
     setError(null);
 
-    const res = await fetch(`/api/users/${user.id}`, {
+    const response = await fetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
-    if (!res.ok) {
-      const json = await res.json().catch(() => null);
-      setError(json?.error || "Failed to save changes.");
+    if (!response.ok) {
+      const body = await response
+        .json()
+        .catch(() => ({} as { error?: string }));
+      setError(body.error ?? "Failed to save changes.");
       setSaving(false);
       return;
     }
 
-    const updated: User = await res.json();
+    const updated: User = await response.json();
     setUser(updated);
     setEditing(false);
     setSaving(false);
-  }
+  };
 
   return (
     <div className="w-full flex items-center justify-center">
@@ -136,7 +150,7 @@ export default function ProfilePage() {
                 <input
                   name="dob"
                   type="date"
-                  value={form.dob || ""}
+                  value={form.dob}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
@@ -151,7 +165,7 @@ export default function ProfilePage() {
                 </label>
                 <input
                   name="address"
-                  value={form.address || ""}
+                  value={form.address}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${

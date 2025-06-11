@@ -8,7 +8,7 @@ import { UploadCloud, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 
 const FUNCTION_URL =
-  "https://fofmafnvjzivhwedlhjm.functions.supabase.co/upload-csv";
+  `${process.env.NEXT_PUBLIC_SUPABASE_EDGE_FUNCTION_URL}/upload-csv`;
 
 type Option = { id: string; name: string };
 
@@ -46,13 +46,12 @@ export default function UploadsPage() {
   if (!session) {
     redirect("/auth/signin");
   }
-  if (!session || (session.user as any).role !== "admin") {
+
+  if (!session || session.user.role !== "admin") {
     return (
       <div className="w-full flex items-center justify-center">
         <div className="p-12 flex items-center justify-center">
-          <p className="text-tertiary text-2xl font-semibold">
-            Access Denied
-          </p>
+          <p className="text-tertiary text-2xl font-semibold">Access Denied</p>
         </div>
       </div>
     );
@@ -71,7 +70,7 @@ export default function UploadsPage() {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("admin_user_id", (session?.user as any).id);
+      formData.append("admin_user_id", session?.user.id as string);
       formData.append("file", file);
       formData.append("client_user_id", clientId);
 
@@ -89,8 +88,8 @@ export default function UploadsPage() {
       setSuccess(json.message || "Upload successful!");
       setFile(null);
       setClientId("");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

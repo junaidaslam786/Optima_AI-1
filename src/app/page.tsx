@@ -1,7 +1,7 @@
 // app/page.tsx
 import { getServerSession } from "next-auth/next";
 import { ClientDashboard } from "@/components/Dashboard/ClientDashboard";
-import { authOptions } from "./api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
 

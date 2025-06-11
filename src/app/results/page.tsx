@@ -1,7 +1,7 @@
 // app/results/page.tsx
 import { cookies } from "next/headers";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { BiomarkerCard } from "@/components/Results/BioMarkerCard";
 import remarkGfm from "remark-gfm";
