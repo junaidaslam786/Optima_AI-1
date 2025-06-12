@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params;
   const { data, error } = await supabaseAdmin
     .from("users")
-    .select("id,email,name,role,dob,address,subscription")
+    .select("id,email,name,role,dob,address,subscription, phone")
     .eq("id", id)
     .single();
   if (error)

@@ -5,14 +5,14 @@ import Image from "next/image";
 import { Navbar } from "../components/Main/Navbar";
 import ClientProvider from "../components/Main/ClientProvider";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
-// import { Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
 
-// const poppins = Poppins({
-//   subsets: ["latin"],
-//   weight: ["100","200","300","400","500","600","700","800","900"], 
-//   variable: "--font-poppins",
-//   display: "swap",
-// });
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
 export const metadata = {
   title: "Optima.AI",
@@ -24,8 +24,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    // <html lang="en" className={poppins.variable}>
-    <html lang="en">
+    <html lang="en" className={poppins.variable}>
       <body className="min-h-screen bg-gray-50">
         <ThemeProvider>
           <ClientProvider>
