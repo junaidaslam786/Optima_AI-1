@@ -1,3 +1,5 @@
+//app/api/user/[id]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 

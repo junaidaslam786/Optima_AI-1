@@ -1,4 +1,4 @@
-// components/main/Navbar.tsx
+// components/Main/Navbar.tsx
 "use client";
 
 import Link from "next/link";
@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { PaletteSelector } from "@/components/Theme/PaletteSelector";
+import { signOut } from "next-auth/react";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -30,9 +31,19 @@ export function Navbar() {
     };
   }, []);
 
-  const isExtrasRoute = ["/contact", "/how-it-works", "/become-a-partner", "/terms-of-service"].includes(pathname);
+  const isExtrasRoute = [
+    "/contact",
+    "/how-it-works",
+    "/become-a-partner",
+    "/terms-of-service",
+  ].includes(pathname);
   const isResourcesRoute = ["/learn", "/guides", "/help"].includes(pathname);
-  const isProfileRoute = ["/profile", "/profile/contact-preferences", "/profile/privacy", "/profile/payment-details"].includes(pathname);
+  const isProfileRoute = [
+    "/profile",
+    "/profile/contact-preferences",
+    "/profile/privacy",
+    "/profile/payment-details",
+  ].includes(pathname);
 
   function toggleMenu(menuName: string) {
     setOpenMenu((prev) => (prev === menuName ? null : menuName));
@@ -312,6 +323,14 @@ export function Navbar() {
                   >
                     Payment Details
                   </Link>
+                </li>
+                <li>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+                    className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    Log Out
+                  </button>
                 </li>
               </ul>
             </li>

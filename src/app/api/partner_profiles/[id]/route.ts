@@ -34,33 +34,52 @@ export async function GET(
   }
 }
 
-// PUT: Update a partner profile by ID (e.g., status update by admin)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const updates = await request.json();
 
-    const { data, error } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("partner_profiles")
-      .update(body)
+      .update(updates)
       .eq("id", id)
       .select()
       .single();
 
-    if (error) {
+    if (profileError) {
       console.error(
-        `Error updating partner profile with ID ${id}:`,
-        error.message
+        `Error updating partner profile ${id}:`,
+        profileError.message
       );
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: profileError.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(data, { status: 200 });
+    if (updates.partner_status === "approved" && profile.user_id) {
+      const { error: userError } = await supabaseAdmin
+        .from("users")
+        .update({ role: "partner" })
+        .eq("id", profile.user_id);
+
+      if (userError) {
+        console.error(
+          `Error updating user ${profile.user_id} role:`,
+          userError.message
+        );
+      }
+    }
+
+    return NextResponse.json(profile, { status: 200 });
   } catch (err: unknown) {
-    console.error("Unexpected error updating partner profile:", (err as Error).message);
+    console.error(
+      "Unexpected error in PATCH /partner_profiles/[id]:",
+      (err as Error).message
+    );
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -90,7 +109,10 @@ export async function DELETE(
 
     return NextResponse.json({ deleted: true }, { status: 200 });
   } catch (err: unknown) {
-    console.error("Unexpected error deleting partner profile:", (err as Error).message);
+    console.error(
+      "Unexpected error deleting partner profile:",
+      (err as Error).message
+    );
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

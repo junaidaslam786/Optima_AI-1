@@ -76,7 +76,7 @@ CREATE TABLE public.pdf_reports (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pdf_reports TO anon, service_role;
 
--- --- NEW E-COMMERCE TABLES ---
+--- NEW E-COMMERCE TABLES ---
 
 -- 7) Partner Profiles
 CREATE TABLE public.partner_profiles (
@@ -101,21 +101,35 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.partner_profiles TO anon, service
 
 -- 8) Admin Products (Base Products)
 CREATE TABLE public.admin_products (
-  id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  name              TEXT          NOT NULL,
-  description       TEXT,
-  base_price        NUMERIC       NOT NULL,
-  sku               TEXT          UNIQUE,
-  barcode           TEXT          UNIQUE,
-  category          TEXT,
-  brand             TEXT,
-  weight            NUMERIC,
-  dimensions        TEXT, -- e.g., 'LxWxH'
-  stock_quantity    INTEGER       NOT NULL DEFAULT 0,
-  is_active         BOOLEAN       NOT NULL DEFAULT TRUE,
-  admin_user_id     UUID          REFERENCES public.users(id) ON DELETE SET NULL, -- Track admin, allow null if admin deleted
-  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
+  id                        UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                      TEXT          NOT NULL,
+  description               TEXT,
+  base_price                NUMERIC       NOT NULL,
+  sku                       TEXT          UNIQUE,
+  barcode                   TEXT          UNIQUE,
+  category                  TEXT,
+  brand                     TEXT,
+  weight                    NUMERIC,
+  dimensions                TEXT, -- e.g., 'LxWxH'
+  stock_quantity            INTEGER       NOT NULL DEFAULT 0,
+  is_active                 BOOLEAN       NOT NULL DEFAULT TRUE,
+  admin_user_id             UUID          REFERENCES public.users(id) ON DELETE SET NULL, -- Track admin, allow null if admin deleted
+
+  -- Medical Kit Specific Fields (Added)
+  manufacturer              VARCHAR(255),
+  model_number              VARCHAR(100),
+  intended_use              TEXT,
+  test_type                 VARCHAR(100),
+  sample_type               TEXT[], -- PostgreSQL array type
+  results_time              VARCHAR(50),
+  storage_conditions        TEXT,
+  regulatory_approvals      TEXT[], -- PostgreSQL array type
+  kit_contents_summary      TEXT,
+  user_manual_url           TEXT,
+  warnings_and_precautions  TEXT[], -- PostgreSQL array type
+
+  created_at                TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at                TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_products TO anon, service_role;
 
@@ -138,8 +152,8 @@ CREATE TABLE public.partner_products (
   partner_id          UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE CASCADE,
   admin_product_id    UUID          NOT NULL REFERENCES public.admin_products(id) ON DELETE RESTRICT,
   partner_price       NUMERIC       NOT NULL,
-  partner_name        TEXT,        -- Optional override for product name
-  partner_description TEXT,        -- Optional override for product description
+  partner_name        TEXT,        -- Optional override for product name, now auto-filled by trigger
+  partner_description TEXT,        -- Optional override for product description, now auto-filled by trigger
   partner_keywords    TEXT[],      -- Array of keywords/tags
   is_active           BOOLEAN       NOT NULL DEFAULT TRUE,
   created_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
@@ -176,8 +190,8 @@ CREATE TABLE public.orders (
   payment_method    TEXT,
   shipping_method   TEXT,
   tracking_number   TEXT,
-  created_at        TIMESTampTZ   NOT NULL DEFAULT now(),
-  updated_at        TIMESTampTZ   NOT NULL DEFAULT now()
+  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.orders TO anon, service_role;
 
@@ -196,7 +210,7 @@ CREATE TABLE public.order_items (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.order_items TO anon, service_role;
 
 
--- --- Triggers & functions for updated_at timestamps ---
+--- Triggers & functions for updated_at timestamps ---
 
 -- users
 DROP TRIGGER IF EXISTS trg_users_updated_at ON public.users;
@@ -362,3 +376,47 @@ CREATE TRIGGER trg_order_items_updated_at
   BEFORE UPDATE ON public.order_items
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_order_items();
+
+
+--- NEW: Trigger for auto-populating partner_name and partner_description ---
+
+-- Function to automatically set partner_name and partner_description
+DROP FUNCTION IF EXISTS public.set_partner_product_defaults(); -- Drop if exists for clean update
+CREATE OR REPLACE FUNCTION public.set_partner_product_defaults()
+RETURNS TRIGGER AS $$
+DECLARE
+    admin_prod_name TEXT;
+    admin_prod_description TEXT;
+BEGIN
+    -- Fetch the name and description from admin_products based on admin_product_id
+    SELECT
+        ap.name,
+        ap.description
+    INTO
+        admin_prod_name,
+        admin_prod_description
+    FROM
+        public.admin_products AS ap
+    WHERE
+        ap.id = NEW.admin_product_id;
+
+    -- If partner_name is NOT explicitly provided by the insert, use the admin_product's name
+    IF NEW.partner_name IS NULL THEN
+        NEW.partner_name := admin_prod_name;
+    END IF;
+
+    -- If partner_description is NOT explicitly provided by the insert, use the admin_product's description
+    IF NEW.partner_description IS NULL THEN
+        NEW.partner_description := admin_prod_description;
+    END IF;
+
+    RETURN NEW; -- Return the modified new row for insertion
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to call the function before inserting into partner_products
+DROP TRIGGER IF EXISTS set_partner_product_defaults_trigger ON public.partner_products; -- Drop if exists for clean update
+CREATE TRIGGER set_partner_product_defaults_trigger
+BEFORE INSERT ON public.partner_products
+FOR EACH ROW
+EXECUTE FUNCTION public.set_partner_product_defaults();
