@@ -12,7 +12,7 @@ export async function middleware(req: NextRequest) {
   if (
     path.startsWith("/api/auth") ||
     path.startsWith("/_next/") ||
-    path === "/favicon.png"
+    path.startsWith("/favicon")
   ) {
     return NextResponse.next();
   }
@@ -21,7 +21,8 @@ export async function middleware(req: NextRequest) {
   const [subdomain] = host.split(".");
   const isLocalhost = host === "localhost" || host === "127.0.0.1";
   const isVercelApp = host.endsWith(".vercel.app");
-  const isCustomApex = host === "optimatesting.co.uk" || host === "www.optimatesting.co.uk";
+  const isCustomApex =
+    host === "optimatesting.co.uk" || host === "www.optimatesting.co.uk";
 
   // If it’s the apex (no subdomain), just serve your main site:
   if (isLocalhost || isVercelApp || isCustomApex) {
@@ -47,5 +48,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.png).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon).*)"],
 };

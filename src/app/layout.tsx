@@ -17,8 +17,8 @@ const poppins = Poppins({
 export const metadata = {
   title: "Optima.AI",
   icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/favicon.png?v=2",
+    apple: "/favicon.png?v=2",
   },
 };
 
