@@ -19,13 +19,12 @@ export async function middleware(req: NextRequest) {
 
   // 2) Extract subdomain:
   const [subdomain] = host.split(".");
-  const isApex =
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "optimatesting.co.uk";  // replace with your real domain when deployed
+  const isLocalhost = host === "localhost" || host === "127.0.0.1";
+  const isVercelApp = host.endsWith(".vercel.app");
+  const isCustomApex = host === "optimatesting.co.uk" || host === "www.optimatesting.co.uk";
 
   // If it’s the apex (no subdomain), just serve your main site:
-  if (isApex) {
+  if (isLocalhost || isVercelApp || isCustomApex) {
     return NextResponse.next();
   }
 
