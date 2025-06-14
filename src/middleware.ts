@@ -12,7 +12,7 @@ export async function middleware(req: NextRequest) {
   if (
     path.startsWith("/api/auth") ||
     path.startsWith("/_next/") ||
-    path === "/favicon.ico"
+    path === "/favicon.png"
   ) {
     return NextResponse.next();
   }
@@ -31,8 +31,7 @@ export async function middleware(req: NextRequest) {
   // 3) For any real subdomain, do the lookup:
   const partner = await getPartnerBySlug(subdomain);
   if (!partner || partner.partner_status !== "approved") {
-    // Not one of your three approved slugs? 404 it:
-    return NextResponse.rewrite(new URL("/404", req.url));
+    return new NextResponse(null, { status: 404 });
   }
 
   // 4) If you want your old GET /api/partner-products?partner_id=… logic to keep working:
@@ -48,5 +47,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.png).*)"],
 };
