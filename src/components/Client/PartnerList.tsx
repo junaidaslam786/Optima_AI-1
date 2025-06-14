@@ -27,9 +27,9 @@ const PartnerList: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center">Our Trusted Partners</h1>
+      <h1 className="text-4xl font-extrabold text-primary mb-8 text-center">Our Trusted Partners</h1>
       {partners?.length === 0 ? (
-        <p className="text-gray-600 text-center py-8 text-lg">No approved partners found at the moment.</p>
+        <p className="text-primary text-center py-8 text-lg">No approved partners found at the moment.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {partners?.map((partner) => (

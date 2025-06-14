@@ -90,7 +90,7 @@ const PartnerRegistrationForm: React.FC = () => {
 
   return (
     <div className="w-full mx-auto p-8 bg-white shadow-lg rounded-lg">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+      <h2 className="text-3xl font-bold text-primary mb-6 text-center">
         Become Our Partner
       </h2>
 

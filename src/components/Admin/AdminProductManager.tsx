@@ -225,7 +225,7 @@ const AdminProductManager: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 bg-secondary/30">
-      <h1 className="text-4xl font-bold text-center mb-8">
+      <h1 className="text-4xl text-primary font-bold text-center mb-8">
         Admin Product Management
       </h1>
       <div className="grid md:grid-cols-3 gap-8">

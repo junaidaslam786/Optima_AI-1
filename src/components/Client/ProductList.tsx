@@ -86,7 +86,7 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
           : "All Partner Products"}
       </h1>
       {partnerProducts?.length === 0 ? (
-        <p className="text-gray-600 text-center py-8 text-lg">
+        <p className="text-primary text-center py-8 text-lg">
           No products found from this partner.
         </p>
       ) : (
