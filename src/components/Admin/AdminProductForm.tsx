@@ -35,7 +35,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     str
       .split(",")
       .map((s) => s.trim())
-      .filter((s) => s);
+      .filter((s) => s!== "");
 
   return (
     <div className="bg-white shadow-xl rounded-lg p-6">
