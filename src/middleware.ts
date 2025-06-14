@@ -22,7 +22,7 @@ export async function middleware(req: NextRequest) {
   const isApex =
     host === "localhost" ||
     host === "127.0.0.1" ||
-    host === "yoursite.com";  // replace with your real domain when deployed
+    host === "optimatesting.co.uk";  // replace with your real domain when deployed
 
   // If it’s the apex (no subdomain), just serve your main site:
   if (isApex) {
