@@ -118,10 +118,10 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
                 </p>
                 <p
                   className={`text-sm font-medium ${
-                    product.is_available ? "text-green-600" : "text-red-600"
+                    product.is_active ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {product.is_available ? "Available" : "Out of Stock"}
+                  {product.is_active ? "Available" : "Out of Stock"}
                 </p>
               </div>
             </div>

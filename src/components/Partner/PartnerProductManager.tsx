@@ -6,11 +6,10 @@ import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
-import PartnerProductList from "@/components/Partner/PartnerProductList";
-import PartnerProductForm from "@/components/Partner/PartnerProductForm";
-import PartnerProductImages from "@/components/Partner/PartnerProductImages";
+import ProductListSection from "@/components/Partner/ProductListSection";
+import ProductFormSection from "@/components/Partner/ProductFormSection";
+import ProductImageSection from "@/components/Partner/ProductImageSection";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { api } from "@/lib/api-client";
 import {
   PartnerProfile,
@@ -21,6 +20,7 @@ import {
   UpdatePartnerProduct,
 } from "@/types/db";
 
+
 const PartnerProductManager: React.FC = () => {
   const { data: session, status } = useSession();
   const user = session?.user;
@@ -30,6 +30,7 @@ const PartnerProductManager: React.FC = () => {
   // State
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [form, setForm] = useState<UpdatePartnerProduct>({
     id: "",
     partner_id: "",
@@ -37,11 +38,8 @@ const PartnerProductManager: React.FC = () => {
     partner_price: 0,
     is_active: true,
   });
-  const [newUrl, setNewUrl] = useState<string>("");
-  const [isThumbnail, setIsThumbnail] = useState<boolean>(false);
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
-  // 1) Load my partner profile
+  // Data Queries
   const { data: profile } = useQuery<
     PartnerProfile[],
     Error,
@@ -52,6 +50,7 @@ const PartnerProductManager: React.FC = () => {
     enabled: !!user?.id && !loading,
     select: (arr) => arr[0] || null,
   });
+
   useEffect(() => {
     if (profile?.partner_status === "approved") {
       setPartnerId(profile.id);
@@ -60,13 +59,11 @@ const PartnerProductManager: React.FC = () => {
     }
   }, [profile]);
 
-  // 2) All admin products for dropdown
   const { data: adminProducts = [] } = useQuery<AdminProduct[], Error>({
     queryKey: ["allAdminProducts"],
     queryFn: () => api.get("/admin_products"),
   });
 
-  // 3) My partner listings
   const {
     data: myProducts = [],
     isLoading: myProductsLoading,
@@ -78,7 +75,6 @@ const PartnerProductManager: React.FC = () => {
     enabled: !!partnerId,
   });
 
-  // 4) Images for the selected listing
   const {
     data: images = [],
     isLoading: imagesLoading,
@@ -91,19 +87,17 @@ const PartnerProductManager: React.FC = () => {
     enabled: !!selectedId,
   });
 
-  // — Mutations —
-  const createMut = useMutation<
-    PartnerProduct,
-    Error,
-    Omit<PartnerProduct, "id"> & { partner_id: string }
-  >({
-    mutationFn: (newListing) => api.post("/partner_products", newListing),
+  // Mutations
+  const createMut = useMutation<PartnerProduct, Error, CreatePartnerProduct>({
+    mutationFn: (newListing) =>
+      api.post(
+        "/partner_products",
+        newListing as unknown as Record<string, unknown>
+      ),
     onSuccess: () => {
       toast.success("Listing created!");
       if (partnerId) {
-        qc.invalidateQueries({
-          queryKey: ["myPartnerProducts", partnerId],
-        });
+        qc.invalidateQueries({ queryKey: ["myPartnerProducts", partnerId] });
       }
       setForm({
         id: "",
@@ -117,13 +111,12 @@ const PartnerProductManager: React.FC = () => {
   });
 
   const updateMut = useMutation<PartnerProduct, Error, UpdatePartnerProduct>({
-    mutationFn: ({ id, ...body }) => api.patch(`/partner_products/${id}`, body),
+    mutationFn: ({ id, ...body }) =>
+      api.patch(`/partner_products/${id}`, body),
     onSuccess: () => {
       toast.success("Listing updated!");
       if (partnerId) {
-        qc.invalidateQueries({
-          queryKey: ["myPartnerProducts", partnerId],
-        });
+        qc.invalidateQueries({ queryKey: ["myPartnerProducts", partnerId] });
       }
     },
     onError: (e) => toast.error(`Update failed: ${e.message}`),
@@ -134,9 +127,7 @@ const PartnerProductManager: React.FC = () => {
     onSuccess: () => {
       toast.success("Listing deleted!");
       if (partnerId) {
-        qc.invalidateQueries({
-          queryKey: ["myPartnerProducts", partnerId],
-        });
+        qc.invalidateQueries({ queryKey: ["myPartnerProducts", partnerId] });
       }
       setSelectedId(null);
       setForm({
@@ -163,8 +154,6 @@ const PartnerProductManager: React.FC = () => {
           queryKey: ["partnerProductImages", selectedId],
         });
       }
-      setNewUrl("");
-      setIsThumbnail(false);
     },
     onError: (e) => toast.error(`Add image failed: ${e.message}`),
   });
@@ -182,82 +171,35 @@ const PartnerProductManager: React.FC = () => {
     onError: (e) => toast.error(`Remove image failed: ${e.message}`),
   });
 
-  // — Handlers —
-  const handleSelect = (p: PartnerProduct) => {
+  // Handlers (passed down to children)
+  const handleSelectProduct = (p: PartnerProduct) => {
     setSelectedId(p.id);
     setForm({
       id: p.id,
-      partner_id: user?.id ?? "",
       admin_product_id: p.admin_product_id,
       partner_price: p.partner_price,
       is_active: p.is_active,
+      partner_name: p.partner_name ?? "",
+      partner_description: p.partner_description ?? "",
+      partner_keywords: p.partner_keywords ?? [],
     });
   };
 
-  const handleAdminSelect = (admin_product_id: string) => {
-    const base = adminProducts.find((p) => p.id === admin_product_id);
-    setForm((f) => ({
-      ...f,
-      admin_product_id,
-      partner_price: base ? base.base_price : f.partner_price,
-    }));
+  const resetProductForm = () => {
+    setSelectedId(null);
+    setForm({
+      id: "",
+      partner_id: "",
+      admin_product_id: "",
+      partner_price: 0,
+      is_active: true,
+    });
   };
 
-  const handlePriceChange = (partner_price: number) => {
-    setForm((f) => ({ ...f, partner_price }));
-  };
-
-  const handleAvailableChange = (is_active: boolean) => {
-    setForm((f) => ({ ...f, is_active }));
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!partnerId) {
-      toast.error("Your partner profile isn't approved yet");
-      return;
-    }
-    form.id
-      ? updateMut.mutate(form)
-      : createMut.mutate({ ...form, partner_id: partnerId });
-  };
-
-  const openDeleteModal = () => setShowDeleteModal(true);
-  const confirmDelete = () => {
+  const confirmDeleteProduct = () => {
     if (selectedId) deleteMut.mutate(selectedId);
     setShowDeleteModal(false);
   };
-
-  const handleAddImage = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedId) {
-      toast.error("Select a listing first");
-      return;
-    }
-    if (!newUrl) {
-      toast.error("Provide an image URL");
-      return;
-    }
-    addImageMut.mutate({
-      partner_product_id: selectedId,
-      image_url: newUrl,
-      is_thumbnail: isThumbnail,
-    });
-  };
-
-  const handleDeleteImage = (id: string) => {
-    delImageMut.mutate(id);
-  };
-
-  // — Guards & render —
-  if (loading) return <LoadingSpinner />;
-  if (!user) return <p className="text-primary">Please sign in to continue</p>;
-  if (!partnerId)
-    return (
-      <p className="text-secondary">
-        Your partner account is not yet approved.
-      </p>
-    );
 
   return (
     <div className="container mx-auto p-6 bg-secondary/30 min-h-screen">
@@ -266,60 +208,38 @@ const PartnerProductManager: React.FC = () => {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* LIST */}
-        <div className="md:col-span-1 bg-white shadow rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-primary mb-4">Listings</h2>
-          <PartnerProductList
-            products={myProducts}
-            selectedId={selectedId}
-            isLoading={myProductsLoading}
-            isError={myProductsError}
-            error={myProductsErrorObj ?? undefined}
-            onSelect={handleSelect}
-          />
-        </div>
+        <ProductListSection
+          products={myProducts}
+          selectedId={selectedId}
+          isLoading={myProductsLoading}
+          isError={myProductsError}
+          error={myProductsErrorObj ?? undefined}
+          onSelect={handleSelectProduct}
+        />
 
-        {/* FORM */}
         <div className="md:col-span-2 bg-white shadow rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-primary mb-4">
-            {selectedId ? "Edit Listing" : "Create New Listing"}
-          </h2>
-          <PartnerProductForm
-            formState={form}
-            adminOptions={adminProducts}
-            onAdminSelect={handleAdminSelect}
-            onPriceChange={handlePriceChange}
-            onAvailableChange={handleAvailableChange}
-            onSubmit={handleSubmit}
-            onReset={() => {
-              setSelectedId(null);
-              setForm({
-                id: "",
-                partner_id: "",
-                admin_product_id: "",
-                partner_price: 0,
-                is_active: true,
-              });
-            }}
-            onDelete={openDeleteModal}
-            isSubmitting={createMut.isPending || updateMut.isPending}
-            isDeleting={deleteMut.isPending}
+          <ProductFormSection
+            selectedId={selectedId}
+            form={form}
+            setForm={setForm}
+            partnerId={partnerId}
+            adminProducts={adminProducts}
+            createMut={createMut}
+            updateMut={updateMut}
+            deleteMut={deleteMut}
+            resetForm={resetProductForm}
+            openDeleteModal={() => setShowDeleteModal(true)}
           />
 
           {selectedId && (
-            <PartnerProductImages
+            <ProductImageSection
               images={images}
               isLoading={imagesLoading}
               isError={imagesError}
               error={imagesErrorObj ?? undefined}
-              newUrl={newUrl}
-              isThumbnail={isThumbnail}
-              onUrlChange={setNewUrl}
-              onThumbnailChange={setIsThumbnail}
-              onAdd={handleAddImage}
-              onDelete={handleDeleteImage}
-              isAdding={addImageMut.isPending}
-              isDeleting={delImageMut.isPending}
+              selectedProductId={selectedId}
+              addImageMut={addImageMut}
+              delImageMut={delImageMut}
             />
           )}
         </div>
@@ -331,7 +251,7 @@ const PartnerProductManager: React.FC = () => {
         description="Are you sure you want to delete this listing and all its images?"
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={confirmDelete}
+        onConfirm={confirmDeleteProduct}
         onCancel={() => setShowDeleteModal(false)}
       />
     </div>

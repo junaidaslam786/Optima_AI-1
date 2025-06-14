@@ -15,7 +15,7 @@ interface OrderDetailProps {
   mode: 'admin' | 'partner' | 'customer';
 }
 
-const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack, mode }) => {
+const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
   const { data: order, isLoading: orderLoading, isError: orderError, error: orderErrorObj } = useQuery<OrderWithDetails, Error>({
     queryKey: ['order', orderId],
     queryFn: () => api.get(`/orders/${orderId}`),

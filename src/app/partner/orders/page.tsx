@@ -7,10 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { PartnerProfile } from "@/types/db";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { withAuth } from "@/components/Auth/withAuth";
 import Button from "@/components/ui/Button";
 
-function PartnerOrdersPage() {
+export default function PartnerOrdersPage() {
   const { data: session, status } = useSession();
   const user = session?.user;
   const sessionLoading = status === "loading";
@@ -35,7 +34,7 @@ function PartnerOrdersPage() {
     );
   }
 
-  if (profileError || !partnerProfile || partnerProfile.status !== "approved") {
+  if (profileError || !partnerProfile || partnerProfile.partner_status !== "approved") {
     return (
       <div className="text-center mt-10 p-6 bg-red-50 border border-red-200 text-red-800 rounded-lg mx-auto max-w-md">
         <p className="font-semibold">
@@ -59,4 +58,3 @@ function PartnerOrdersPage() {
   );
 }
 
-export default withAuth(PartnerOrdersPage, { allowedRoles: ["partner"] });

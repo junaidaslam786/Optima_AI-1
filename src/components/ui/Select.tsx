@@ -16,6 +16,8 @@ interface SelectProps {
   placeholder?: string;
   error?: string;
   className?: string;
+  disabled?: boolean;
+  required?: boolean;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -28,6 +30,8 @@ export const Select: React.FC<SelectProps> = ({
   placeholder = "Select…",
   error,
   className = "",
+  disabled = false,
+  required = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,6 +58,9 @@ export const Select: React.FC<SelectProps> = ({
 
   return (
     <div className="relative" ref={ref}>
+      {/* hidden input to enforce required in native form validation */}
+      {required && <input type="hidden" name={id} value={value} required />}
+
       <label htmlFor={id} className="block text-primary mb-1">
         {label}
       </label>
@@ -61,12 +68,17 @@ export const Select: React.FC<SelectProps> = ({
       {/* faux “select box” */}
       <div
         id={id}
+        role="button"
+        aria-disabled={disabled}
+        aria-expanded={open}
         className={
-          `w-full px-4 py-2 border rounded-lg cursor-pointer flex items-center justify-between ` +
+          `w-full px-4 py-2 border rounded-lg flex items-center justify-between ` +
           (error ? "border-red-500 " : "border-primary ") +
+          (disabled ? "opacity-50 cursor-not-allowed " : "cursor-pointer ") +
           className
         }
         onClick={() => {
+          if (disabled) return;
           setOpen((o) => !o);
           setQuery("");
         }}

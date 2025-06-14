@@ -9,7 +9,8 @@ import Alert from "@/components/ui/Alert";
 import { api } from "@/lib/api-client";
 import { OrderWithDetails } from "@/types/db";
 import { useSession } from "next-auth/react";
-import OrderDetail from "./OrderDetail";
+import OrderDetail from "@/components/Orders/OrderDetail";
+import { withAuth } from "@/components/Auth/withAuth";
 
 type OrderListViewMode = "admin" | "partner" | "customer";
 
@@ -69,7 +70,7 @@ const OrderList: React.FC<OrderListProps> = ({
   const updateOrderStatusMutation = useMutation<
     OrderWithDetails,
     Error,
-    { id: string; status: OrderWithDetails["status"] }
+    { id: string; status: OrderWithDetails["order_status"] }
   >({
     mutationFn: ({ id, status }) => api.patch(`/orders/${id}`, { status }),
     onSuccess: (_, variables) => {
@@ -232,22 +233,22 @@ const OrderList: React.FC<OrderListProps> = ({
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                       ${
-                        order.status === "completed"
+                        order.order_status === "shipped"
                           ? "bg-green-100 text-green-800"
                           : ""
                       }
                       ${
-                        order.status === "pending"
+                        order.order_status === "pending"
                           ? "bg-yellow-100 text-yellow-800"
                           : ""
                       }
                       ${
-                        order.status === "cancelled"
+                        order.order_status === "cancelled"
                           ? "bg-red-100 text-red-800"
                           : ""
                       }`}
                     >
-                      {order.status}
+                      {order.order_status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -262,7 +263,7 @@ const OrderList: React.FC<OrderListProps> = ({
                     >
                       View Details
                     </Button>
-                    {mode === "admin" && order.status === "pending" && (
+                    {mode === "admin" && order.order_status === "pending" && (
                       <Button
                         variant="primary"
                         size="sm"
@@ -270,7 +271,7 @@ const OrderList: React.FC<OrderListProps> = ({
                         onClick={() =>
                           updateOrderStatusMutation.mutate({
                             id: order.id,
-                            status: "completed",
+                            status: "shipped",
                           })
                         }
                         isLoading={updateOrderStatusMutation.isPending}
@@ -279,7 +280,7 @@ const OrderList: React.FC<OrderListProps> = ({
                         Complete
                       </Button>
                     )}
-                    {mode === "admin" && order.status !== "cancelled" && (
+                    {mode === "admin" && order.order_status !== "cancelled" && (
                       <Button
                         variant="danger"
                         size="sm"
@@ -307,4 +308,4 @@ const OrderList: React.FC<OrderListProps> = ({
   );
 };
 
-export default OrderList;
+export default withAuth(OrderList, { allowedRoles: ["partner"] });

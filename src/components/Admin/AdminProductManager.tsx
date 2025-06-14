@@ -191,6 +191,7 @@ const AdminProductManager: React.FC = () => {
       ...formState,
       admin_user_id: userId,
     };
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     selectedProductId ? updateM.mutate(payload) : createM.mutate(payload);
   };
 

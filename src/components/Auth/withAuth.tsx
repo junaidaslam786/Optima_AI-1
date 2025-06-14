@@ -42,7 +42,7 @@ export function withAuth<P extends object>(
           setTimeout(() => window.history.back(), 1000);
         }
       }
-    }, [isLoading, isAuthenticated, isAuthorized, allowedRoles, notified]);
+    }, [isLoading, isAuthenticated, isAuthorized, notified]);
 
     if (isLoading) {
       return (

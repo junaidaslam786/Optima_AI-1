@@ -1,9 +1,21 @@
 // lib/api-client.ts
 import { getSession } from "next-auth/react";
 
-type JsonBody = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
+declare module "next-auth" {
+  interface Session {
+    accessToken?: string;
+  }
+}
 
-interface ApiClientOptions extends Omit<RequestInit, 'body'> {
+type JsonBody =
+  | Record<string, unknown>
+  | Array<unknown>
+  | string
+  | number
+  | boolean
+  | null;
+
+interface ApiClientOptions extends Omit<RequestInit, "body"> {
   token?: string | null;
   body?: JsonBody;
 }
@@ -71,10 +83,16 @@ async function apiClient<T>(
 export const api = {
   get: <T>(endpoint: string, options?: ApiClientOptions) =>
     apiClient<T>(endpoint, { ...options, method: "GET" }),
-  post: <T>(endpoint: string, body: JsonBody, options?: ApiClientOptions) => // Update body type here
-    apiClient<T>(endpoint, { ...options, method: "POST", body }),
-  patch: <T>(endpoint: string, body: JsonBody, options?: ApiClientOptions) => // Update body type here
-    apiClient<T>(endpoint, { ...options, method: "PATCH", body }),
+  post: <T>(
+    endpoint: string,
+    body: JsonBody,
+    options?: ApiClientOptions // Update body type here
+  ) => apiClient<T>(endpoint, { ...options, method: "POST", body }),
+  patch: <T>(
+    endpoint: string,
+    body: JsonBody,
+    options?: ApiClientOptions // Update body type here
+  ) => apiClient<T>(endpoint, { ...options, method: "PATCH", body }),
   delete: <T>(endpoint: string, options?: ApiClientOptions) =>
     apiClient<T>(endpoint, { ...options, method: "DELETE" }),
 };
