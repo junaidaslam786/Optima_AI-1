@@ -4,7 +4,7 @@
 import OrderList from '@/components/Orders/OrderList';
 import { useSession } from 'next-auth/react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { withAuth } from '@/components/Auth/withAuth'; // Correct path
+import { withAuth } from '@/components/Auth/withAuth';
 
 function OrdersPage() {
   const { data: session, status } = useSession();
@@ -20,7 +20,7 @@ function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12">
+    <div className="w-full min-h-screen bg-primary/10 py-12">
       <OrderList mode="customer" filterByUserId={user.id} />
     </div>
   );

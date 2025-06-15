@@ -505,7 +505,7 @@ export interface UpdateOrderItem {
 
 export type PartnerProductWithDetails = PartnerProduct & {
   partner_profiles: { company_name: string } | null;
-  admin_products: { name: string; base_price: number } | null;
+  admin_products: AdminProduct | null;
 };
 
 export type OrderWithDetails = Order & {

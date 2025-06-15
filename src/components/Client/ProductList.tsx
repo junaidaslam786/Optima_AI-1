@@ -1,13 +1,13 @@
-// components/Client/ProductList.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import Alert from "@/components/ui/Alert";
+import toast from "react-hot-toast";
 import { api } from "@/lib/api-client";
-import { PartnerProductWithDetails, PartnerProductImage } from "@/types/db";
+import { PartnerProductWithDetails, PartnerProductImage, AdminProductImage } from "@/types/db";
 import Image from "next/image";
+import Alert from "@/components/ui/Alert";
 
 interface ProductListProps {
   partnerId?: string;
@@ -23,61 +23,99 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
     queryKey: ["partnerProducts", partnerId],
     queryFn: () => {
       const queryString = partnerId ? `?partner_id=${partnerId}` : "";
-      return api.get(`/partner_products${queryString}`);
+      return api.get<PartnerProductWithDetails[]>(`/partner_products${queryString}`);
     },
   });
 
-  const productIds = partnerProducts?.map((p) => p.id) || [];
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(`Failed to load products: ${error.message}`);
+    }
+  }, [isError, error]);
+
   const {
-    data: allProductImages,
-    isLoading: imagesLoading,
-    isError: imagesError,
+    data: partnerProductImages,
+    isLoading: partnerImagesLoading,
+    isError: partnerImagesError,
+    error: partnerImagesFetchError
   } = useQuery<PartnerProductImage[], Error>({
-    queryKey: ["allPartnerProductImages", productIds],
+    queryKey: ["partnerProductImages"],
     queryFn: async (): Promise<PartnerProductImage[]> => {
-      if (productIds.length === 0) return []; // Avoid fetching if no products
-      // You might have a single API endpoint like `/api/partner_product_images?product_ids=id1,id2,...`
-      // For now, making individual calls (less efficient but works)
-      const results = await Promise.all(
-        productIds.map((id) =>
-          api.get(`/partner_product_images?partner_product_id=${id}`)
-        )
-      );
-      return results.flat() as PartnerProductImage[];
+      return api.get<PartnerProductImage[]>(`/partner_product_images`);
     },
-    enabled: productIds.length > 0,
+    enabled: true,
     select: (data) => data.filter((img) => img.is_thumbnail),
   });
 
-  const getThumbnail = (productId: string) => {
-    return (
-      allProductImages?.find((img) => img.partner_product_id === productId)
-        ?.image_url || "/placeholder-image.jpg"
-    );
+  useEffect(() => {
+    if (partnerImagesError && partnerImagesFetchError) {
+      toast.error(`Failed to load partner images: ${partnerImagesFetchError.message}`);
+    }
+  }, [partnerImagesError, partnerImagesFetchError]);
+
+  const {
+    data: adminProductImages,
+    isLoading: adminImagesLoading,
+    isError: adminImagesError,
+    error: adminImagesFetchError
+  } = useQuery<AdminProductImage[], Error>({
+    queryKey: ["adminProductImages"],
+    queryFn: async (): Promise<AdminProductImage[]> => {
+      return api.get<AdminProductImage[]>(`/admin_product_images`);
+    },
+    enabled: true,
+    select: (data) => data.filter((img) => img.is_thumbnail),
+  });
+
+  useEffect(() => {
+    if (adminImagesError && adminImagesFetchError) {
+      toast.error(`Failed to load admin images: ${adminImagesFetchError.message}`);
+    }
+  }, [adminImagesError, adminImagesFetchError]);
+
+  const getBestThumbnail = (product: PartnerProductWithDetails) => {
+    const partnerThumbnail = partnerProductImages?.find(
+      (img) => img.partner_product_id === product.id
+    )?.image_url;
+
+    if (partnerThumbnail) {
+      return partnerThumbnail;
+    }
+
+    // CRITICAL FIX: Use product.admin_product_id instead of product.admin_products?.id
+    const adminThumbnail = adminProductImages?.find(
+      (img) => img.product_id === product.admin_product_id
+    )?.image_url;
+
+    if (adminThumbnail) {
+      return adminThumbnail;
+    }
+
+    return "/placeholder-image.jpg";
   };
 
-  if (isLoading || imagesLoading) {
+  if (isLoading || partnerImagesLoading || adminImagesLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="w-full flex justify-center items-center p-8">
         <LoadingSpinner />
         <p className="ml-2">Loading products...</p>
       </div>
     );
   }
 
-  if (isError || imagesError) {
+  if (isError || partnerImagesError || adminImagesError) {
     return (
-      <div className="text-center text-red-600 mt-10">
+      <div className="w-full text-center text-red-600 mt-10">
         <Alert
           type="error"
-          message={`Error: ${error?.message || "Failed to load products"}`}
+          message={`Error: ${error?.message || "Failed to load products or images."}`}
         />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+    <div className="w-full container mx-auto p-6 bg-primary/30">
       <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center">
         {partnerId
           ? `Products from ${
@@ -86,11 +124,11 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
           : "All Partner Products"}
       </h1>
       {partnerProducts?.length === 0 ? (
-        <p className="text-primary text-center py-8 text-lg">
+        <p className="w-full text-primary text-center py-8 text-lg">
           No products found from this partner.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {partnerProducts?.map((product) => (
             <div
               key={product.id}
@@ -98,11 +136,12 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
             >
               <div className="relative w-full h-48">
                 <Image
-                  src={getThumbnail(product.id)}
+                  src={getBestThumbnail(product)}
                   alt={product.admin_products?.name || "Product Image"}
                   layout="fill"
                   objectFit="cover"
                   className="rounded-t-lg"
+                  unoptimized
                 />
               </div>
               <div className="p-4">
