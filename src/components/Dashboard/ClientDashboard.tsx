@@ -8,30 +8,18 @@ import { Callout } from "./Callout";
 import { InfoCard } from "./InfoCard";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+import { withAuth } from "@/components/Auth/withAuth";
+import { Marker, Panel } from "@/types/db";
 
-interface Panel {
-  id: string;
-  name: string;
-}
-interface RawMarker {
-  id: string;
-  panel_id: string;
-  value: number;
-  normal_low: number;
-  normal_high: number;
-  unit: string;
-  marker: string;
-  status: string;
-}
-type ByPanel = Record<string, RawMarker[]>;
+type ByPanel = Record<string, Marker[]>;
 
 interface Props {
   panels: Panel[];
-  markers: RawMarker[];
+  markers: Marker[];
   insights: string;
 }
 
-export function ClientDashboard({ panels, markers, insights }: Props) {
+const ClientDashboard: React.FC<Props> = ({ panels, markers, insights }) => {
   const router = useRouter();
   const [panelMap] = useState(() => {
     return panels.reduce((acc, panel) => {
@@ -104,14 +92,14 @@ export function ClientDashboard({ panels, markers, insights }: Props) {
                 className="cursor-pointer hover:shadow-lg bg-primary/10 shadow rounded-lg p-6 transition"
               >
                 <h2 className="text-lg font-semibold text-primary mb-4">
-                  {panelName}
+                  {thisPanelMarkers && panelName}
                 </h2>
                 <HormonesTable
                   markers={thisPanelMarkers.map((m) => ({
                     id: m.id,
                     value: m.value,
-                    normal_low: m.normal_low,
-                    normal_high: m.normal_high,
+                    normal_low: m.normal_low ?? null,
+                    normal_high: m.normal_high ?? null,
                     unit: m.unit,
                     marker: m.marker,
                     status: m.status,
@@ -131,4 +119,6 @@ export function ClientDashboard({ panels, markers, insights }: Props) {
       </div>
     </div>
   );
-}
+};
+
+export default withAuth(ClientDashboard, { allowedRoles: ["client"] });

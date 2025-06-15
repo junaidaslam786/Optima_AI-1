@@ -16,6 +16,7 @@ type ReportRequestBody = {
   panels: Panel[];
   markers: Marker[];
   insights?: string;
+  panel_id?: string;
 };
 
 export async function GET(request: NextRequest) {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
   const { data, error } = await supabaseAdmin
     .from("pdf_reports")
-    .select("id, user_id, report_url, generated_at")
+    .select("id, user_id, report_url, generated_at, panel_id")
     .eq("user_id", user_id)
     .order("generated_at", { ascending: false });
   if (error) {
@@ -43,9 +44,12 @@ export async function POST(request: NextRequest) {
     }
     const user_id = session.user.id;
     const body = (await request.json()) as ReportRequestBody;
-    const { panels, markers, insights } = body;
+    const { panels, markers, insights, panel_id } = body;
     if (!panels || !markers) {
-      return NextResponse.json({ error: "Missing panels or markers" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing panels or markers" },
+        { status: 400 }
+      );
     }
     const pdfBuffer = await buildPdf({
       userName: session.user.name ?? "",
@@ -68,7 +72,12 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
     const { data: record, error: dbError } = await supabaseAdmin
       .from("pdf_reports")
-      .insert({ user_id, report_url: urlData.publicUrl, generated_at: now })
+      .insert({
+        user_id,
+        panel_id,
+        report_url: urlData.publicUrl,
+        generated_at: now,
+      })
       .select()
       .single();
     if (dbError) {

@@ -36,7 +36,22 @@ export default function SigninPage() {
       user: { role: string };
     };
     const role = session?.user.role;
-    const destination = role === "admin" ? "/uploads" : "/";
+    let destination = "/";
+    switch (role) {
+      case "admin":
+        destination = "/admin/products";
+        break;
+      case "partner":
+        destination = "/partner/products";
+        break;
+      case "client":
+        destination = "/";
+        break;
+      default:
+        console.warn("Unknown user role or role missing, redirecting to /");
+        destination = "/";
+        break;
+    }
     router.push(destination);
   };
 

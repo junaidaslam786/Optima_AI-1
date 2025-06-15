@@ -1,12 +1,106 @@
-// components/Main/Navbar.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { PaletteSelector } from "@/components/Theme/PaletteSelector";
-import { signOut } from "next-auth/react";
+
+interface NavLink {
+  href: string;
+  label: string;
+  subLinks?: NavLink[];
+  authRequired?: boolean;
+}
+
+const navData: Record<string, NavLink[]> = {
+  guest: [
+    { href: "/purchase", label: "Purchase a Test Kit" },
+    {
+      href: "#",
+      label: "Legal",
+      subLinks: [
+        { href: "/contact", label: "Contact" },
+        { href: "/how-it-works", label: "How it Works" },
+        { href: "/terms-of-service", label: "Terms of Service" },
+      ],
+    },
+    {
+      href: "#",
+      label: "Learn",
+      subLinks: [
+        { href: "/learn", label: "Learn" },
+        { href: "/guides", label: "Guides on Markers" },
+      ],
+    },
+  ],
+  client: [
+    { href: "/dashboard", label: "Dashboard", authRequired: true },
+    { href: "/reports", label: "Past Reports", authRequired: true },
+    { href: "/purchase", label: "Purchase a Test Kit" },
+    {
+      href: "#",
+      label: "Legal",
+      subLinks: [
+        { href: "/contact", label: "Contact" },
+        { href: "/how-it-works", label: "How it Works" },
+        {
+          href: "/become-a-partner",
+          label: "Become a Partner",
+          authRequired: true,
+        },
+        { href: "/terms-of-service", label: "Terms of Service" },
+      ],
+    },
+    {
+      href: "#",
+      label: "Learn",
+      subLinks: [
+        { href: "/learn", label: "Learn" },
+        { href: "/guides", label: "Guides on Markers" },
+        { href: "/help", label: "Help with Results", authRequired: true },
+      ],
+    },
+    {
+      href: "#",
+      label: "Profile",
+      authRequired: true,
+      subLinks: [
+        { href: "/profile", label: "My Profile" },
+        { href: "/profile/contact-preferences", label: "Contact Preferences" },
+        { href: "/profile/privacy", label: "Privacy" },
+        { href: "/profile/payment-details", label: "Payment Details" },
+      ],
+    },
+  ],
+  partner: [
+    { href: "/partner/products", label: "Products", authRequired: true },
+    { href: "/partner/orders", label: "Orders", authRequired: true },
+    { href: "/partner/dashboard", label: "Dashboard", authRequired: true },
+    {
+      href: "#",
+      label: "Profile",
+      authRequired: true,
+      subLinks: [{ href: "/partner/profile", label: "My Profile" }],
+    },
+  ],
+  admin: [
+    {
+      href: "/admin/partner-approval",
+      label: "Partner Approval",
+      authRequired: true,
+    },
+    { href: "/uploads", label: "Uploads", authRequired: true },
+    { href: "/admin/products", label: "Products", authRequired: true },
+    { href: "/admin/orders", label: "Orders", authRequired: true },
+    {
+      href: "#",
+      label: "Profile",
+      authRequired: true,
+      subLinks: [{ href: "/admin/profile", label: "My Profile" }],
+    },
+  ],
+};
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -14,6 +108,15 @@ export function Navbar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const userRole = session?.user?.role || "guest";
+
+  let navLinksToRender: NavLink[] = [];
+  if (!session || userRole === "guest") {
+    navLinksToRender = navData.guest;
+  } else {
+    navLinksToRender = navData[userRole as keyof typeof navData] || [];
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -31,311 +134,109 @@ export function Navbar() {
     };
   }, []);
 
-  const isExtrasRoute = [
-    "/contact",
-    "/how-it-works",
-    "/become-a-partner",
-    "/terms-of-service",
-  ].includes(pathname);
-  const isResourcesRoute = ["/learn", "/guides", "/help"].includes(pathname);
-  const isProfileRoute = [
-    "/profile",
-    "/profile/contact-preferences",
-    "/profile/privacy",
-    "/profile/payment-details",
-  ].includes(pathname);
-
   function toggleMenu(menuName: string) {
     setOpenMenu((prev) => (prev === menuName ? null : menuName));
     setPaletteOpen(false);
   }
 
+  const renderNavLink = (link: NavLink) => {
+    if (link.authRequired && !session) {
+      return null;
+    }
+
+    const isParentActive = link.subLinks
+      ? link.subLinks.some((subLink) => pathname === subLink.href)
+      : false;
+    const isActive = pathname === link.href || isParentActive;
+
+    if (link.subLinks) {
+      const filteredSubLinks = link.subLinks;
+
+      if (filteredSubLinks.length === 0 && link.href === "#") {
+        return null;
+      }
+
+      return (
+        <li key={link.label} className="relative">
+          <button
+            onClick={() => toggleMenu(link.label)}
+            className={`flex items-center focus:outline-none ${
+              isActive
+                ? "text-primary font-semibold"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            {link.label}
+            {/* Dropdown arrow SVG */}
+            <svg
+              className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${
+                openMenu === link.label ? "rotate-180" : "rotate-0"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <ul
+            className={`absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
+              openMenu === link.label ? "block" : "hidden"
+            }`}
+          >
+            {filteredSubLinks.map((subLink) => (
+              <li key={subLink.label}>
+                <Link
+                  href={subLink.href}
+                  className={`block px-4 py-2 text-sm ${
+                    pathname === subLink.href
+                      ? "bg-primary-light text-primary font-medium"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  {subLink.label}
+                </Link>
+              </li>
+            ))}
+            {link.label === "Profile" && session && (
+              <li>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  Log Out
+                </button>
+              </li>
+            )}
+          </ul>
+        </li>
+      );
+    } else {
+      return (
+        <li key={link.label}>
+          <Link
+            href={link.href}
+            className={
+              isActive
+                ? "text-primary font-semibold"
+                : "text-gray-600 hover:text-gray-800"
+            }
+          >
+            {link.label}
+          </Link>
+        </li>
+      );
+    }
+  };
+
   return (
     <div ref={wrapperRef}>
       <nav className="relative flex items-center justify-between p-4">
         <ul className="flex space-x-8">
-          {session && (
-            <>
-              <li>
-                <Link
-                  href="/"
-                  className={
-                    pathname === "/"
-                      ? "text-primary font-semibold"
-                      : "text-gray-600 hover:text-gray-800"
-                  }
-                >
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/reports"
-                  className={
-                    pathname === "/reports"
-                      ? "text-primary font-semibold"
-                      : "text-gray-600 hover:text-gray-800"
-                  }
-                >
-                  Past Reports
-                </Link>
-              </li>
-            </>
-          )}
-          <li>
-            <Link
-              href="/purchase"
-              className={
-                pathname === "/purchase"
-                  ? "text-primary font-semibold"
-                  : "text-gray-600 hover:text-gray-800"
-              }
-            >
-              Purchase a Test Kit
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/partner-management"
-              className={
-                pathname === "/partner-management"
-                  ? "text-primary font-semibold"
-                  : "text-gray-600 hover:text-gray-800"
-              }
-            >
-              Partner Management
-            </Link>
-          </li>
-          <li className="relative">
-            <button
-              onClick={() => toggleMenu("extras")}
-              className={`flex items-center focus:outline-none ${
-                isExtrasRoute
-                  ? "text-primary font-semibold"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              Legal
-              <svg
-                className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${
-                  openMenu === "extras" ? "rotate-180" : "rotate-0"
-                }`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <ul
-              className={`absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-                openMenu === "extras" ? "block" : "hidden"
-              }`}
-            >
-              <li>
-                <Link
-                  href="/contact"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/contact"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/how-it-works"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/how-it-works"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  How it Works
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/become-a-partner"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/become-a-partner"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Become a Partner
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/terms-of-service"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/terms-of-service"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Terms of Service
-                </Link>
-              </li>
-            </ul>
-          </li>
-          <li className="relative">
-            <button
-              onClick={() => toggleMenu("resources")}
-              className={`flex items-center focus:outline-none ${
-                isResourcesRoute
-                  ? "text-primary font-semibold"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              Learn
-              <svg
-                className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${
-                  openMenu === "resources" ? "rotate-180" : "rotate-0"
-                }`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <ul
-              className={`absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-                openMenu === "resources" ? "block" : "hidden"
-              }`}
-            >
-              <li>
-                <Link
-                  href="/learn"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/learn"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Learn
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/guides"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/guides"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Guides on Markers
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/help"
-                  className={`block px-4 py-2 text-sm ${
-                    pathname === "/help"
-                      ? "bg-primary-light text-primary font-medium"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  Help with Results
-                </Link>
-              </li>
-            </ul>
-          </li>
-          {session && (
-            <li className="relative">
-              <button
-                onClick={() => toggleMenu("profile")}
-                className={`flex items-center focus:outline-none ${
-                  isProfileRoute
-                    ? "text-primary font-semibold"
-                    : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                Profile
-                <svg
-                  className={`ml-1 h-4 w-4 transform transition-transform duration-200 ${
-                    openMenu === "profile" ? "rotate-180" : "rotate-0"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <ul
-                className={`absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 ${
-                  openMenu === "profile" ? "block" : "hidden"
-                }`}
-              >
-                <li>
-                  <Link
-                    href="/profile"
-                    className={`block px-4 py-2 text-sm ${
-                      pathname === "/profile"
-                        ? "bg-primary-light text-primary font-medium"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    My Profile
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/profile/contact-preferences"
-                    className={`block px-4 py-2 text-sm ${
-                      pathname === "/profile/contact-preferences"
-                        ? "bg-primary-light text-primary font-medium"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    Contact Preferences
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/profile/privacy"
-                    className={`block px-4 py-2 text-sm ${
-                      pathname === "/profile/privacy"
-                        ? "bg-primary-light text-primary font-medium"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/profile/payment-details"
-                    className={`block px-4 py-2 text-sm ${
-                      pathname === "/profile/payment-details"
-                        ? "bg-primary-light text-primary font-medium"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    Payment Details
-                  </Link>
-                </li>
-                <li>
-                  <button
-                    onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                    className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  >
-                    Log Out
-                  </button>
-                </li>
-              </ul>
-            </li>
-          )}
+          {navLinksToRender.map(renderNavLink)}
         </ul>
+
         <div className="relative">
           <button
             onClick={() => {

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast"; // Import toast
 
 interface Marker {
   id: string;
@@ -34,10 +35,8 @@ export function PanelReports({
   insights,
 }: PanelReportsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleGenerate() {
-    setError(null);
     setIsGenerating(true);
 
     try {
@@ -45,6 +44,7 @@ export function PanelReports({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          panel_id: panelId,
           user_id: userId,
           user_name: userName,
           user_email: userEmail,
@@ -59,17 +59,17 @@ export function PanelReports({
         throw new Error(data.error || "Failed to generate report");
       }
 
+      toast.success("Report saved successfully!"); // Success toast
       setIsGenerating(false);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      toast.error(`Error: ${errorMessage}`); // Error toast
       setIsGenerating(false);
     }
   }
 
   return (
     <div className="mt-8">
-      {error && <p className="text-secondary mb-2">{error}</p>}
-
       <button
         onClick={handleGenerate}
         disabled={isGenerating}

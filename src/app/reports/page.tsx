@@ -5,29 +5,22 @@ import { useSession } from "next-auth/react";
 import { useReports } from "@/hooks/useReports";
 import { HealthScoreChart } from "@/components/Reports/HealthScoreChart";
 import { PastReportsList } from "@/components/Reports/PastReportsList";
-import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { withAuth } from "@/components/Auth/withAuth";
 
-export default function ReportsPage() {
-  const router = useRouter();
-
-  useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push("/auth/signin");
-    },
-  });
-
+const ReportsPage = () => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
   const { data: reports, error } = useReports(userId ?? "");
 
   const past = useMemo(() => {
-    return (reports || []).map((r: { generated_at: string; report_url: string }) => ({
-      date: new Date(r.generated_at).toLocaleDateString(),
-      href: r.report_url,
-    }));
+    return (reports || []).map(
+      (r: { generated_at: string; report_url: string }) => ({
+        date: new Date(r.generated_at).toLocaleDateString(),
+        href: r.report_url,
+      })
+    );
   }, [reports]);
 
   if (!reports && !error) {
@@ -55,4 +48,6 @@ export default function ReportsPage() {
       <PastReportsList reports={past} />
     </div>
   );
-}
+};
+
+export default withAuth(ReportsPage, { allowedRoles: ["client"] });
