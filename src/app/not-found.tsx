@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-secondary p-4">
@@ -9,10 +11,11 @@ export default function NotFound() {
         </h1>
         <p className="text-2xl font-semibold text-white mb-6">Page Not Found</p>
         <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-          Oops! It looks like you've ventured into uncharted territory. The page
-          you're looking for might have been moved or doesn't exist.
+          Oops! It looks like you&apos;ve ventured into uncharted territory. The
+          page you&apos;re looking for might have been moved or doesn&apos;t
+          exist.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-tertiary focus:ring-offset-primary transition duration-300 ease-in-out transform hover:scale-105"
         >
@@ -35,7 +38,7 @@ export default function NotFound() {
               clipRule="evenodd"
             />
           </svg>
-        </a>
+        </Link>
       </div>
 
       {/* Add some simple keyframe animation for a smoother appearance */}
