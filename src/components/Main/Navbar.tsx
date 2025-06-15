@@ -33,6 +33,7 @@ const navData: Record<string, NavLink[]> = {
         { href: "/guides", label: "Guides on Markers" },
       ],
     },
+    { href: "/auth/signin", label: "Sign In" },
   ],
   client: [
     { href: "/dashboard", label: "Dashboard", authRequired: true },
@@ -232,12 +233,12 @@ export function Navbar() {
 
   return (
     <div ref={wrapperRef}>
-      <nav className="relative flex items-center justify-between p-4">
-        <ul className="flex space-x-8">
+      <nav className="relative flex items-center justify-between p-[1vw]">
+        <ul className="flex space-x-[2vw]">
           {navLinksToRender.map(renderNavLink)}
         </ul>
 
-        <div className="relative">
+        <div className="relative ml-[2vw]">
           <button
             onClick={() => {
               setPaletteOpen((prev) => !prev);
