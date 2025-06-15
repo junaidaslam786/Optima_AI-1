@@ -1,21 +1,43 @@
 /* styles/globals.css */
-:root {
-  --color-primary-rgb:   11 43 64;
-  --color-secondary-rgb: 29 89 115;
-  --color-tertiary-rgb:  125 170 198;
-  --font-primary: var(--font-poppins);
-}
-
-.dark {
-  --color-primary-rgb:   255 255 255;
-  --color-secondary-rgb: 0   0   0;
-  --color-tertiary-rgb:  128 128 128;
-}
-
-html, body, #__next {
-  font-family: var(--font-primary), sans-serif;
-}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-primary-rgb: 11, 43, 64;
+  --color-secondary-rgb: 29, 89, 115;
+  --color-tertiary-rgb: 125, 170, 198;
+  --font-primary: var(--font-poppins);
+}
+
+.dark {
+  --color-primary-rgb: 255, 255, 255;
+  --color-secondary-rgb: 0, 0, 0;
+  --color-tertiary-rgb: 128, 128, 128;
+}
+
+::selection {
+  background-color: rgb(var(--color-primary-rgb));
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 0.3vw;
+  height: 0.3vw;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-primary-rgb));
+  border-radius: 1vmin;
+}
+
+html,
+body,
+#__next {
+  font-family: var(--font-primary), sans-serif;
+}
