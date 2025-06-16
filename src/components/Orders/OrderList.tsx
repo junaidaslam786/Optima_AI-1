@@ -218,7 +218,7 @@ const OrderList: React.FC<OrderListProps> = ({
               {orders?.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {order.id.substring(0, 8)}...
+                    {order.id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {order.users?.name || order.users?.email || "N/A"}
@@ -227,7 +227,7 @@ const OrderList: React.FC<OrderListProps> = ({
                     {order.partner_profiles?.company_name || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    ${order.total_amount.toFixed(2)} {order.currency}
+                    {order.total_amount.toFixed(2)} {order.currency ?? "£"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span

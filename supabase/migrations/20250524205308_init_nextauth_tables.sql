@@ -106,9 +106,7 @@ CREATE TABLE public.admin_products (
   description               TEXT,
   base_price                NUMERIC       NOT NULL,
   sku                       TEXT          UNIQUE,
-  barcode                   TEXT          UNIQUE,
   category                  TEXT,
-  brand                     TEXT,
   weight                    NUMERIC,
   dimensions                TEXT, -- e.g., 'LxWxH'
   stock_quantity            INTEGER       NOT NULL DEFAULT 0,
@@ -116,8 +114,6 @@ CREATE TABLE public.admin_products (
   admin_user_id             UUID          REFERENCES public.users(id) ON DELETE SET NULL, -- Track admin, allow null if admin deleted
 
   -- Medical Kit Specific Fields (Added)
-  manufacturer              VARCHAR(255),
-  model_number              VARCHAR(100),
   intended_use              TEXT,
   test_type                 VARCHAR(100),
   sample_type               TEXT[], -- PostgreSQL array type
@@ -182,7 +178,7 @@ CREATE TABLE public.orders (
   partner_id        UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE RESTRICT,
   order_date        TIMESTAMPTZ   NOT NULL DEFAULT now(),
   total_amount      NUMERIC       NOT NULL,
-  currency          TEXT          NOT NULL DEFAULT 'USD',
+  currency          TEXT          NOT NULL DEFAULT 'GBP',
   order_status      TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'
   shipping_address  TEXT,
   billing_address   TEXT,

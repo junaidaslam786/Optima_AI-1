@@ -10,14 +10,23 @@ import { PartnerProfile } from "@/types/db";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import PartnerDetailsModal from "@/components/Admin/PartnerDetailsModal";
 
 const PartnerApprovalList: React.FC = () => {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedPartnerIdForDetails, setSelectedPartnerIdForDetails] =
+    useState<string | null>(null);
   const [selected, setSelected] = useState<{
     id: string;
     action: "approved" | "rejected";
   } | null>(null);
+  const currentDate = new Date().toLocaleDateString("en-UK", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   const {
     data: partners,
@@ -32,10 +41,14 @@ const PartnerApprovalList: React.FC = () => {
   const updatePartnerStatusMutation = useMutation<
     PartnerProfile,
     Error,
-    { id: string; partner_status: "approved" | "rejected" }
+    {
+      id: string;
+      partner_status: "approved" | "rejected";
+      approval_date: string;
+    }
   >({
-    mutationFn: ({ id, partner_status }) =>
-      api.patch(`/partner_profiles/${id}`, { partner_status }),
+    mutationFn: ({ id, partner_status, approval_date }) =>
+      api.patch(`/partner_profiles/${id}`, { partner_status, approval_date }),
     onSuccess: (_, variables) => {
       toast.success(`Partner ${variables.partner_status} successfully!`);
       queryClient.invalidateQueries({ queryKey: ["partnerProfiles"] });
@@ -55,10 +68,22 @@ const PartnerApprovalList: React.FC = () => {
       updatePartnerStatusMutation.mutate({
         id: selected.id,
         partner_status: selected.action,
+        approval_date: currentDate,
       });
     }
     setModalOpen(false);
     setSelected(null);
+  };
+
+  const openDetailsModal = (partnerId: string) => {
+    setSelectedPartnerIdForDetails(partnerId);
+    setShowDetailsModal(true);
+  };
+
+  // Function to close the details modal
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedPartnerIdForDetails(null);
   };
 
   if (isLoading) {
@@ -172,7 +197,7 @@ const PartnerApprovalList: React.FC = () => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => console.log("View details for", partner.id)}
+                    onClick={() => openDetailsModal(partner.id)}
                   >
                     View Details
                   </Button>
@@ -198,6 +223,12 @@ const PartnerApprovalList: React.FC = () => {
         cancelLabel="Cancel"
         onConfirm={handleConfirm}
         onCancel={() => setModalOpen(false)}
+      />
+      {/* PartnerDetailsModal integration */}
+      <PartnerDetailsModal
+        isOpen={showDetailsModal}
+        onClose={closeDetailsModal}
+        partnerId={selectedPartnerIdForDetails}
       />
     </div>
   );

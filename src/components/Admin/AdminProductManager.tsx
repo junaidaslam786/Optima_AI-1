@@ -25,16 +25,12 @@ const INITIAL_FORM: FormState = {
   description: "",
   base_price: 0,
   sku: "",
-  barcode: "",
   category: "",
-  brand: "",
   weight: 0,
   dimensions: "",
   stock_quantity: 0,
   is_active: true,
   admin_user_id: "",
-  manufacturer: "",
-  model_number: "",
   intended_use: "",
   test_type: "",
   sample_type: [],
@@ -97,10 +93,11 @@ const AdminProductManager: React.FC = () => {
       return api.post("/admin_products", clean(rest));
     },
     onSuccess: () => {
-      toast.success("Created!");
+      toast.success("Product Created Successfully!");
       qc.invalidateQueries({ queryKey: ["adminProducts"] });
       setSelectedProductId(null);
       setFormState(INITIAL_FORM);
+      window.location.reload();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -112,8 +109,9 @@ const AdminProductManager: React.FC = () => {
       return api.patch(`/admin_products/${id}`, clean(rest));
     },
     onSuccess: () => {
-      toast.success("Updated!");
+      toast.success("Product Updated Successfully!");
       qc.invalidateQueries({ queryKey: ["adminProducts"] });
+      window.location.reload();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -125,6 +123,7 @@ const AdminProductManager: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["adminProducts"] });
       setSelectedProductId(null);
       setFormState(INITIAL_FORM);
+      window.location.reload();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -163,6 +162,7 @@ const AdminProductManager: React.FC = () => {
       qc.invalidateQueries({
         queryKey: ["adminProductImages", selectedProductId],
       });
+      window.location.reload();
     },
     onError: (e) => toast.error(e.message),
   });

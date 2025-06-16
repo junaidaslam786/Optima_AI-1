@@ -81,23 +81,99 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
     setSelectedDeleteId(null);
   };
 
+  // Helper function to validate image dimensions and aspect ratio
+  const validateImage = (
+    width: number,
+    height: number
+  ): { isValid: boolean; message?: string } => {
+    const minSize = 480;
+    const maxSize = 720;
+
+    if (width < minSize || height < minSize) {
+      return {
+        isValid: false,
+        message: `Image dimensions must be at least ${minSize}x${minSize} pixels.`,
+      };
+    }
+    if (width > maxSize || height > maxSize) {
+      return {
+        isValid: false,
+        message: `Image dimensions must be at most ${maxSize}x${maxSize} pixels.`,
+      };
+    }
+    if (width !== height) {
+      return {
+        isValid: false,
+        message: "Image must have a 1:1 aspect ratio (square).",
+      };
+    }
+    return { isValid: true };
+  };
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFile && !newImageUrl) return;
+
+    if (!newFile && !newImageUrl) {
+      toast.error("Please provide an image URL or upload a file.");
+      return;
+    }
+
+    const processImage = (imgSrc: string) => {
+      return new Promise<void>((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const { isValid, message } = validateImage(img.width, img.height);
+          if (isValid) {
+            onAddImage(e);
+            resolve();
+          } else {
+            reject(new Error(message));
+          }
+        };
+        img.onerror = () => {
+          reject(
+            new Error("Failed to load image from URL. Please check the URL.")
+          );
+        };
+        img.src = imgSrc;
+      });
+    };
 
     toast.promise(
-      new Promise<void>((resolve, reject) => {
+      new Promise<void>(async (resolve, reject) => {
         try {
-          onAddImage(e);
-          resolve();
-        } catch (e) {
-          reject(e);
+          if (useFile && newFile) {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+              try {
+                if (event.target?.result) {
+                  await processImage(event.target.result as string);
+                  resolve();
+                } else {
+                  reject(new Error("Failed to read file."));
+                }
+              } catch (error) {
+                reject(error);
+              }
+            };
+            reader.onerror = () => {
+              reject(new Error("Failed to read the selected file."));
+            };
+            reader.readAsDataURL(newFile);
+          } else if (!useFile && newImageUrl) {
+            await processImage(newImageUrl);
+            resolve();
+          } else {
+            reject(new Error("No image data provided."));
+          }
+        } catch (error) {
+          reject(error);
         }
       }),
       {
-        loading: "Uploading image...",
+        loading: "Validating and uploading image...",
         success: "Image uploaded successfully!",
-        error: "Failed to upload image.",
+        error: (err) => `Failed to upload image: ${err.message}`,
       }
     );
   };

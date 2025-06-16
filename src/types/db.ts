@@ -257,16 +257,12 @@ export interface CreateAdminProduct {
   description?: string;
   base_price: number;
   sku?: string;
-  barcode?: string;
   category?: string;
-  brand?: string;
   weight?: number;
   dimensions?: string;
   stock_quantity: number;
   is_active: boolean;
   admin_user_id?: string;
-  manufacturer?: string;
-  model_number?: string;
   intended_use?: string;
   test_type?: string;
   sample_type?: string[];

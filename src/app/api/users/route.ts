@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("users")
-    .select("id,email,name,role,dob,address,subscription, phone");
+    .select("id,email,name,role,dob,address,subscription, phone, created_at, updated_at");
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

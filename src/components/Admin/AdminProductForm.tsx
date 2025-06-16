@@ -1,7 +1,7 @@
 // components/Admin/ProductForm.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -35,7 +35,33 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     str
       .split(",")
       .map((s) => s.trim())
-      .filter((s) => s!== "");
+      .filter((s) => s !== "");
+
+  // Local states for textareas that handle arrays
+  const [sampleTypeText, setSampleTypeText] = useState(
+    listToString(formState.sample_type)
+  );
+  const [regulatoryApprovalsText, setRegulatoryApprovalsText] = useState(
+    listToString(formState.regulatory_approvals)
+  );
+  const [warningsAndPrecautionsText, setWarningsAndPrecautionsText] = useState(
+    listToString(formState.warnings_and_precautions)
+  );
+
+  // Synchronize local states with formState when formState changes
+  useEffect(() => {
+    setSampleTypeText(listToString(formState.sample_type));
+  }, [formState.sample_type]);
+
+  useEffect(() => {
+    setRegulatoryApprovalsText(listToString(formState.regulatory_approvals));
+  }, [formState.regulatory_approvals]);
+
+  useEffect(() => {
+    setWarningsAndPrecautionsText(
+      listToString(formState.warnings_and_precautions)
+    );
+  }, [formState.warnings_and_precautions]);
 
   return (
     <div className="bg-white shadow-xl rounded-lg p-6">
@@ -69,6 +95,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           label="Base Price"
           type="number"
           step="0.01"
+          required
           value={formState.base_price.toString()}
           onChange={(e) =>
             onFormChange({
@@ -76,23 +103,14 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
               base_price: parseFloat(e.target.value) || 0,
             })
           }
-          required
         />
 
         <Input
           id="sku"
           label="SKU"
+          required
           value={formState.sku ?? ""}
           onChange={(e) => onFormChange({ ...formState, sku: e.target.value })}
-        />
-
-        <Input
-          id="barcode"
-          label="Barcode"
-          value={formState.barcode ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, barcode: e.target.value })
-          }
         />
 
         <Input
@@ -101,15 +119,6 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           value={formState.category ?? ""}
           onChange={(e) =>
             onFormChange({ ...formState, category: e.target.value })
-          }
-        />
-
-        <Input
-          id="brand"
-          label="Brand"
-          value={formState.brand ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, brand: e.target.value })
           }
         />
 
@@ -151,25 +160,6 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           required
         />
 
-        {/* Manufacturer details */}
-        <Input
-          id="manufacturer"
-          label="Manufacturer"
-          value={formState.manufacturer ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, manufacturer: e.target.value })
-          }
-        />
-
-        <Input
-          id="modelNumber"
-          label="Model Number"
-          value={formState.model_number ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, model_number: e.target.value })
-          }
-        />
-
         {/* Usage & testing */}
         <Input
           id="intendedUse"
@@ -194,11 +184,12 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           label="Sample Type(s)"
           rows={2}
           placeholder="Comma-separate multiple sample types"
-          value={listToString(formState.sample_type)}
-          onChange={(e) =>
+          value={sampleTypeText}
+          onChange={(e) => setSampleTypeText(e.target.value)}
+          onBlur={() =>
             onFormChange({
               ...formState,
-              sample_type: stringToList(e.target.value),
+              sample_type: stringToList(sampleTypeText),
             })
           }
         />
@@ -231,11 +222,12 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           label="Regulatory Approvals"
           rows={2}
           placeholder="Comma-separate approvals"
-          value={listToString(formState.regulatory_approvals)}
-          onChange={(e) =>
+          value={regulatoryApprovalsText}
+          onChange={(e) => setRegulatoryApprovalsText(e.target.value)}
+          onBlur={() =>
             onFormChange({
               ...formState,
-              regulatory_approvals: stringToList(e.target.value),
+              regulatory_approvals: stringToList(regulatoryApprovalsText),
             })
           }
         />
@@ -268,11 +260,14 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           label="Warnings & Precautions"
           rows={2}
           placeholder="Comma-separate warnings"
-          value={listToString(formState.warnings_and_precautions)}
-          onChange={(e) =>
+          value={warningsAndPrecautionsText}
+          onChange={(e) => setWarningsAndPrecautionsText(e.target.value)}
+          onBlur={() =>
             onFormChange({
               ...formState,
-              warnings_and_precautions: stringToList(e.target.value),
+              warnings_and_precautions: stringToList(
+                warningsAndPrecautionsText
+              ),
             })
           }
         />

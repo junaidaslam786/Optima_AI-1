@@ -123,10 +123,10 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
                       {item.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      ${item.price_at_purchase.toFixed(2)} {order.currency}
+                      {item.price_at_purchase.toFixed(2)} {order.currency ?? "£"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {(item.quantity * item.price_at_purchase).toFixed(2)} {order.currency}
+                      {(item.quantity * item.price_at_purchase).toFixed(2)} {order.currency  ?? "£"}
                     </td>
                   </tr>
                 ))}

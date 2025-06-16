@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    if (!body.name || !body.base_price || !body.sku || !body.stock_quantity) {
+    if (!body.name || !body.base_price || !body.sku) {
       return NextResponse.json({ error: "Missing required fields for admin product" }, { status: 400 });
     }
 

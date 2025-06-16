@@ -46,9 +46,7 @@ const PartnerProductList: React.FC<PartnerProductListProps> = ({
           onClick={() => onSelect(p)}
         >
           <p className="text-primary text-lg">{p.partner_name}</p>
-          <p className="text-secondary text-sm">
-            Price: ${p.partner_price}
-          </p>
+          <p className="text-secondary text-sm">Price: £{p.partner_price.toFixed(2)}</p>
         </li>
       ))}
     </ul>
