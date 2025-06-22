@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
 import ProductListSection from "@/components/Partner/ProductListSection";
 import ProductFormSection from "@/components/Partner/ProductFormSection";
-import ProductImageSection from "@/components/Partner/ProductImageSection";
+import PartnerProductImages from "@/components/Partner/PartnerProductImages"; // Directly import PartnerProductImages
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { api } from "@/lib/api-client";
 import {
@@ -20,14 +20,13 @@ import {
   UpdatePartnerProduct,
 } from "@/types/db";
 
-
 const PartnerProductManager: React.FC = () => {
   const { data: session, status } = useSession();
   const user = session?.user;
   const loading = status === "loading";
   const qc = useQueryClient();
 
-  // State
+  // State for partner profile and product form
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
@@ -39,6 +38,12 @@ const PartnerProductManager: React.FC = () => {
     is_active: true,
   });
 
+  // State for image upload
+  const [newImageUrl, setNewImageUrl] = useState<string>("");
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [isNewImageThumbnail, setIsNewImageThumbnail] =
+    useState<boolean>(false);
+
   // Data Queries
   const { data: profile } = useQuery<
     PartnerProfile[],
@@ -48,7 +53,7 @@ const PartnerProductManager: React.FC = () => {
     queryKey: ["myPartnerProfile", user?.id],
     queryFn: () => api.get(`/partner_profiles?user_id=${user?.id}`),
     enabled: !!user?.id && !loading,
-    select: (arr) => arr[0] || null,
+    select: (profiles) => profiles.find((p) => p.user_id === user?.id) || null,
   });
 
   useEffect(() => {
@@ -111,8 +116,7 @@ const PartnerProductManager: React.FC = () => {
   });
 
   const updateMut = useMutation<PartnerProduct, Error, UpdatePartnerProduct>({
-    mutationFn: ({ id, ...body }) =>
-      api.patch(`/partner_products/${id}`, body),
+    mutationFn: ({ id, ...body }) => api.patch(`/partner_products/${id}`, body),
     onSuccess: () => {
       toast.success("Listing updated!");
       if (partnerId) {
@@ -141,21 +145,41 @@ const PartnerProductManager: React.FC = () => {
     onError: (e) => toast.error(`Delete failed: ${e.message}`),
   });
 
+  // In components/partner/PartnerProductManager.tsx
   const addImageMut = useMutation<
     PartnerProductImage,
     Error,
-    { partner_product_id: string; image_url: string; is_thumbnail: boolean }
+    | FormData
+    | { partner_product_id: string; image_url: string; is_thumbnail: boolean }
   >({
-    mutationFn: (img) => api.post("/partner_product_images", img),
-    onSuccess: () => {
-      toast.success("Image added!");
-      if (selectedId) {
-        qc.invalidateQueries({
-          queryKey: ["partnerProductImages", selectedId],
+    mutationFn: (payload) => {
+      if (payload instanceof FormData) {
+        return fetch("/api/partner_product_images", {
+          method: "POST",
+          body: payload,
+        }).then(async (res) => {
+          // This 'then' block is crucial
+          if (!res.ok) {
+            // <--- THIS IS THE CHECK
+            const errorData = await res.json();
+            throw new Error(
+              errorData.error || `Server Error: ${res.status} ${res.statusText}`
+            );
+          }
+          return res.json(); // Only runs if res.ok is true
         });
+      } else {
+        return api.post(
+          "/partner_product_images",
+          payload as Record<string, unknown>
+        );
       }
     },
-    onError: (e) => toast.error(`Add image failed: ${e.message}`),
+    onSuccess: () => {
+      toast.success("Image added!"); // This should ONLY run if the promise above resolves
+      // ...
+    },
+    onError: (e) => toast.error(`Failed to add image: ${e.message}`), // This should run if the promise above rejects
   });
 
   const delImageMut = useMutation<null, Error, string>({
@@ -171,7 +195,7 @@ const PartnerProductManager: React.FC = () => {
     onError: (e) => toast.error(`Remove image failed: ${e.message}`),
   });
 
-  // Handlers (passed down to children)
+  // Handlers
   const handleSelectProduct = (p: PartnerProduct) => {
     setSelectedId(p.id);
     setForm({
@@ -183,6 +207,10 @@ const PartnerProductManager: React.FC = () => {
       partner_description: p.partner_description ?? "",
       partner_keywords: p.partner_keywords ?? [],
     });
+    // Reset image inputs when selecting a new product
+    setNewImageUrl("");
+    setNewImageFile(null);
+    setIsNewImageThumbnail(false);
   };
 
   const resetProductForm = () => {
@@ -194,12 +222,41 @@ const PartnerProductManager: React.FC = () => {
       partner_price: 0,
       is_active: true,
     });
+    // Reset image inputs when resetting product form
+    setNewImageUrl("");
+    setNewImageFile(null);
+    setIsNewImageThumbnail(false);
   };
 
   const confirmDeleteProduct = () => {
     if (selectedId) deleteMut.mutate(selectedId);
     setShowDeleteModal(false);
   };
+
+  // In handleAddImage inside PartnerProductManager.tsx
+const handleAddImage = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!selectedId) {
+    toast.error("Please select a product first to add images.");
+    return;
+  }
+
+  if (newImageFile) { // This condition should lead to the `fetch` path
+      const formData = new FormData();
+      formData.append("partner_product_id", selectedId);
+      formData.append("image", newImageFile);
+      formData.append("is_thumbnail", String(isNewImageThumbnail));
+      addImageMut.mutate(formData); // This calls the mutationFn with FormData
+  } else if (newImageUrl) { // This condition should lead to the `api.post` path
+      addImageMut.mutate({
+          partner_product_id: selectedId,
+          image_url: newImageUrl,
+          is_thumbnail: isNewImageThumbnail,
+      });
+  } else {
+      toast.error("No image data provided to add.");
+  }
+};
 
   return (
     <div className="container mx-auto p-6 bg-secondary/30 min-h-screen">
@@ -232,14 +289,22 @@ const PartnerProductManager: React.FC = () => {
           />
 
           {selectedId && (
-            <ProductImageSection
+            // Directly render PartnerProductImages here
+            <PartnerProductImages
               images={images}
               isLoading={imagesLoading}
               isError={imagesError}
               error={imagesErrorObj ?? undefined}
-              selectedProductId={selectedId}
-              addImageMut={addImageMut}
-              delImageMut={delImageMut}
+              newUrl={newImageUrl}
+              newFile={newImageFile}
+              isThumbnail={isNewImageThumbnail}
+              onUrlChange={setNewImageUrl}
+              onFileChange={setNewImageFile}
+              onThumbnailChange={setIsNewImageThumbnail}
+              onAdd={handleAddImage}
+              onDelete={delImageMut.mutate}
+              addLoading={addImageMut.isPending}
+              deleteLoading={delImageMut.isPending}
             />
           )}
         </div>
