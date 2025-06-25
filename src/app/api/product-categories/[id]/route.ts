@@ -1,31 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// GET: Fetch a single partner product image by ID
 export async function GET(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const { id } = await params;
+
     const { data, error } = await supabaseAdmin
-      .from("partner_product_images")
+      .from("product_categories")
       .select("*")
       .eq("id", id)
       .single();
 
     if (error) {
       console.error(
-        `Error fetching partner product image with ID ${id}:`,
+        `Error fetching product category with ID ${id}:`,
         error.message
       );
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.code === "PGRST116" ? 404 : 500 }
+      );
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error fetching partner product image by ID:",
+      "Unexpected error fetching product category by ID:",
       (err as Error).message
     );
     return NextResponse.json(
@@ -35,9 +38,8 @@ export async function GET(
   }
 }
 
-// PUT: Update a partner product image by ID
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
@@ -45,7 +47,7 @@ export async function PATCH(
     const body = await request.json();
 
     const { data, error } = await supabaseAdmin
-      .from("partner_product_images")
+      .from("product_categories")
       .update(body)
       .eq("id", id)
       .select()
@@ -53,16 +55,16 @@ export async function PATCH(
 
     if (error) {
       console.error(
-        `Error updating partner product image with ID ${id}:`,
+        `Error updating product category with ID ${id}:`,
         error.message
       );
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error updating partner product image:",
+      "Unexpected error updating product category:",
       (err as Error).message
     );
     return NextResponse.json(
@@ -72,30 +74,29 @@ export async function PATCH(
   }
 }
 
-// DELETE: Delete a partner product image by ID
 export async function DELETE(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const { id } = await params;
     const { error } = await supabaseAdmin
-      .from("partner_product_images")
+      .from("product_categories")
       .delete()
       .eq("id", id);
 
     if (error) {
       console.error(
-        `Error deleting partner product image with ID ${id}:`,
+        `Error deleting product category with ID ${id}:`,
         error.message
       );
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ deleted: true }, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error deleting partner product image:",
+      "Unexpected error deleting product category:",
       (err as Error).message
     );
     return NextResponse.json(

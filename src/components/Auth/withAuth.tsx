@@ -46,9 +46,11 @@ export function withAuth<P extends object>(
 
     if (isLoading) {
       return (
-        <div className="flex justify-center items-center bg-secondary/10 py-8">
-          <LoadingSpinner />
-          <p className="ml-2 text-primary">Checking authentication…</p>
+        <div className="w-full h-full flex justify-center items-center bg-secondary/10 py-8">
+          <div className="flex justify-center items-center">
+            <LoadingSpinner />
+            <p className="ml-2 text-primary">Checking authentication…</p>
+          </div>
         </div>
       );
     }

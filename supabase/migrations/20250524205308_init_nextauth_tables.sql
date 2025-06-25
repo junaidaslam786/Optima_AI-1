@@ -3,11 +3,11 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 2) Users + seed admin
 CREATE TABLE public.users (
-  id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  email         TEXT         NOT NULL UNIQUE,
-  password_hash TEXT         NOT NULL,
-  name          TEXT         NOT NULL,
-  role          TEXT         NOT NULL DEFAULT 'client',
+  id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  email         TEXT          NOT NULL UNIQUE,
+  password_hash TEXT          NOT NULL,
+  name          TEXT          NOT NULL,
+  role          TEXT          NOT NULL DEFAULT 'client',
   dob           DATE,
   address       TEXT,
   subscription  TEXT,
@@ -26,182 +26,170 @@ VALUES (
 );
 GRANT SELECT, INSERT, UPDATE ON public.users TO anon, service_role;
 
--- 3) Panels
+-- 3) Product Categories (New Table)
+CREATE TABLE public.product_categories (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          TEXT        NOT NULL UNIQUE,
+  description   TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.product_categories TO anon, service_role;
+
+-- 4) Panels
 CREATE TABLE public.panels (
-  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        TEXT         NOT NULL,
-  description TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          TEXT          NOT NULL,
+  description   TEXT,
+  category_id   UUID          REFERENCES public.product_categories(id) ON DELETE SET NULL;
+  created_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE ON public.panels TO anon, service_role;
 
--- 4) Uploads
+-- 5) Uploads
 CREATE TABLE public.uploads (
-  id             UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_user_id  UUID         NOT NULL REFERENCES public.users(id),
-  client_user_id UUID         NOT NULL REFERENCES public.users(id),
-  filename       TEXT         NOT NULL,
+  id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_user_id  UUID          NOT NULL REFERENCES public.users(id),
+  client_user_id UUID          NOT NULL REFERENCES public.users(id),
+  filename       TEXT          NOT NULL,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.uploads TO anon, service_role;
 
--- 5) Markers
+-- 6) Markers (Modified)
 CREATE TABLE public.markers (
-  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-  csvfile_id   UUID         NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
-  user_id      UUID         NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
-  panel_id     UUID         NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
-  col_date     DATE         NOT NULL DEFAULT now(),
-  rep_date     DATE         NOT NULL DEFAULT now(),
-  marker       TEXT         NOT NULL,
-  value        NUMERIC      NOT NULL,
-  unit         TEXT         NOT NULL,
-  normal_low   NUMERIC,
-  normal_high  NUMERIC,
-  status       TEXT         NOT NULL DEFAULT 'normal', -- 'normal', 'high', 'low', 'critical'
-  created_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  updated_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
+  id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  panel_id      UUID          NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
+  marker        TEXT          NOT NULL,
+  unit          TEXT          NOT NULL,
+  normal_low    NUMERIC,
+  normal_high   NUMERIC,
+  created_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.markers TO anon, service_role;
 
--- 6) PDF Reports
+-- 7) Patient Marker Values (New Table)
+CREATE TABLE public.patient_marker_values (
+  id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  csvfile_id    UUID          NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
+  user_id       UUID          NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  marker_id     UUID          NOT NULL REFERENCES public.markers(id) ON DELETE RESTRICT,
+  col_date      DATE          NOT NULL DEFAULT now(),
+  rep_date      DATE          NOT NULL DEFAULT now(),
+  value         NUMERIC       NOT NULL,
+  status        TEXT          NOT NULL DEFAULT 'normal', -- 'normal', 'high', 'low', 'critical'
+  created_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.patient_marker_values TO anon, service_role;
+
+-- 8) PDF Reports
 CREATE TABLE public.pdf_reports (
-  id            UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id       UUID      NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
-  panel_id      UUID      NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
-  report_url    TEXT      NOT NULL,
-  generated_at  DATE      NOT NULL DEFAULT CURRENT_DATE
+  id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID          NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  panel_id      UUID          NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
+  report_url    TEXT          NOT NULL,
+  generated_at  DATE          NOT NULL DEFAULT CURRENT_DATE
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pdf_reports TO anon, service_role;
 
 --- NEW E-COMMERCE TABLES ---
 
--- 7) Partner Profiles
+-- 9) Partner Profiles
 CREATE TABLE public.partner_profiles (
-  id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id             UUID          NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE RESTRICT,
-  company_name        TEXT          NOT NULL UNIQUE,
-  company_slug        TEXT          NOT NULL UNIQUE, -- URL-friendly slug for subdomain
-  company_description TEXT,
-  contact_person_name TEXT,
-  contact_email       TEXT          NOT NULL,
-  contact_phone       TEXT, -- Optional, can be derived from user's phone but partner can update
-  address             TEXT,
-  country             TEXT,
-  partner_status      TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'suspended', 'deactivated'
-  approval_date       TIMESTAMPTZ,
-  rejection_reason    TEXT,
-  notes               TEXT,
-  created_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ   NOT NULL DEFAULT now()
+  id                    UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id               UUID          NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE RESTRICT,
+  company_name          TEXT          NOT NULL UNIQUE,
+  company_slug          TEXT          NOT NULL UNIQUE, -- URL-friendly slug for subdomain
+  company_description   TEXT,
+  contact_person_name   TEXT,
+  contact_email         TEXT          NOT NULL,
+  contact_phone         TEXT, -- Optional, can be derived from user's phone but partner can update
+  address               TEXT,
+  country               TEXT,
+  partner_status        TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'suspended', 'deactivated'
+  approval_date         TIMESTAMPTZ,
+  rejection_reason      TEXT,
+  notes                 TEXT,
+  created_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.partner_profiles TO anon, service_role;
 
--- 8) Admin Products (Base Products)
+-- 10) Admin Products (Base Products) (Modified)
 CREATE TABLE public.admin_products (
   id                        UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   name                      TEXT          NOT NULL,
   description               TEXT,
   base_price                NUMERIC       NOT NULL,
   sku                       TEXT          UNIQUE,
-  category                  TEXT,
-  weight                    NUMERIC,
-  dimensions                TEXT, -- e.g., 'LxWxH'
-  stock_quantity            INTEGER       NOT NULL DEFAULT 0,
-  is_active                 BOOLEAN       NOT NULL DEFAULT TRUE,
-  admin_user_id             UUID          REFERENCES public.users(id) ON DELETE SET NULL, -- Track admin, allow null if admin deleted
-
-  -- Medical Kit Specific Fields (Added)
+  category_ids              UUID[],        -- Array of product_categories.id
   intended_use              TEXT,
   test_type                 VARCHAR(100),
-  sample_type               TEXT[], -- PostgreSQL array type
-  results_time              VARCHAR(50),
-  storage_conditions        TEXT,
-  regulatory_approvals      TEXT[], -- PostgreSQL array type
-  kit_contents_summary      TEXT,
-  user_manual_url           TEXT,
-  warnings_and_precautions  TEXT[], -- PostgreSQL array type
-
+  marker_ids                UUID[],        
+  result_timeline           VARCHAR(50),   -- Renamed from 'results_time' to 'result_timeline' based on image
+  additional_test_information TEXT,        -- New field based on image
+  corresponding_panels      UUID[],        -- Array of panel IDs based on image
+  admin_user_id             UUID          REFERENCES public.users(id) ON DELETE SET NULL, -- Track admin, allow null if admin deleted
+  product_image_urls        TEXT[],        -- Up to 4 image URLs
+  thumbnail_url             TEXT,          -- Single thumbnail URL
   created_at                TIMESTAMPTZ   NOT NULL DEFAULT now(),
   updated_at                TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_products TO anon, service_role;
 
--- 9) Admin Product Images
-CREATE TABLE public.admin_product_images (
-  id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id        UUID          NOT NULL REFERENCES public.admin_products(id) ON DELETE CASCADE,
-  image_url         TEXT          NOT NULL,
-  alt_text          TEXT,
-  sort_order        INTEGER,
-  is_thumbnail      BOOLEAN       NOT NULL DEFAULT FALSE,
-  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
-);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_product_images TO anon, service_role;
-
--- 10) Partner Products (Partner's custom listings of admin products)
+-- 11) Partner Products (Partner's custom listings of admin products) (Modified)
 CREATE TABLE public.partner_products (
-  id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  partner_id          UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE CASCADE,
-  admin_product_id    UUID          NOT NULL REFERENCES public.admin_products(id) ON DELETE RESTRICT,
-  partner_price       NUMERIC       NOT NULL,
-  partner_name        TEXT,        -- Optional override for product name, now auto-filled by trigger
-  partner_description TEXT,        -- Optional override for product description, now auto-filled by trigger
-  partner_keywords    TEXT[],      -- Array of keywords/tags
-  is_active           BOOLEAN       NOT NULL DEFAULT TRUE,
-  created_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  id                    UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  partner_id            UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE CASCADE,
+  admin_product_id      UUID          NOT NULL REFERENCES public.admin_products(id) ON DELETE RESTRICT,
+  partner_price         NUMERIC       NOT NULL,
+  partner_name          TEXT,         -- Optional override for product name, now auto-filled by trigger
+  partner_description   TEXT,         -- Optional override for product description, now auto-filled by trigger
+  partner_keywords      TEXT[],       -- Array of keywords/tags
+  is_active             BOOLEAN       NOT NULL DEFAULT TRUE,
+  product_image_urls    TEXT[],       -- Up to 4 image URLs
+  thumbnail_url         TEXT,         -- Single thumbnail URL
+  created_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
   UNIQUE (partner_id, admin_product_id) -- A partner can only list an admin product once
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.partner_products TO anon, service_role;
 
--- 11) Partner Product Images
-CREATE TABLE public.partner_product_images (
-  id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  partner_product_id  UUID          NOT NULL REFERENCES public.partner_products(id) ON DELETE CASCADE,
-  image_url           TEXT          NOT NULL,
-  alt_text            TEXT,
-  sort_order          INTEGER,
-  is_thumbnail        BOOLEAN       NOT NULL DEFAULT FALSE,
-  created_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ   NOT NULL DEFAULT now()
-);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.partner_product_images TO anon, service_role;
-
 -- 12) Orders
 CREATE TABLE public.orders (
-  id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_user_id  UUID          NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
-  partner_id        UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE RESTRICT,
-  order_date        TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  total_amount      NUMERIC       NOT NULL,
-  currency          TEXT          NOT NULL DEFAULT 'GBP',
-  order_status      TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'
-  shipping_address  TEXT,
-  billing_address   TEXT,
-  payment_status    TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'paid', 'failed', 'refunded'
-  payment_method    TEXT,
-  shipping_method   TEXT,
-  tracking_number   TEXT,
-  created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
+  id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_user_id    UUID          NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  partner_id          UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE RESTRICT,
+  order_date          TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  total_amount        NUMERIC       NOT NULL,
+  currency            TEXT          NOT NULL DEFAULT 'GBP',
+  order_status        TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'
+  shipping_address    TEXT,
+  billing_address     TEXT,
+  payment_status      TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'paid', 'failed', 'refunded'
+  payment_method      TEXT,
+  shipping_method     TEXT,
+  tracking_number     TEXT,
+  created_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.orders TO anon, service_role;
 
 -- 13) Order Items
 CREATE TABLE public.order_items (
-  id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id            UUID          NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-  partner_product_id  UUID          NOT NULL REFERENCES public.partner_products(id) ON DELETE RESTRICT,
-  quantity            INTEGER       NOT NULL,
-  price_at_purchase   NUMERIC       NOT NULL, -- Price at the time of purchase
-  admin_revenue_share NUMERIC, -- Calculated share for admin
+  id                    UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id              UUID          NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  partner_product_id    UUID          NOT NULL REFERENCES public.partner_products(id) ON DELETE RESTRICT,
+  quantity              INTEGER       NOT NULL,
+  price_at_purchase     NUMERIC       NOT NULL, -- Price at the time of purchase
+  admin_revenue_share   NUMERIC, -- Calculated share for admin
   partner_revenue_share NUMERIC, -- Calculated share for partner
-  created_at          TIMESTAMPTZ   NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ   NOT NULL DEFAULT now()
+  created_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.order_items TO anon, service_role;
 
@@ -268,6 +256,37 @@ CREATE TRIGGER trg_markers_updated_at
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_markers();
 
+-- patient_marker_values
+DROP TRIGGER IF EXISTS trg_patient_marker_values_updated_at ON public.patient_marker_values;
+DROP FUNCTION IF EXISTS public.set_updated_at_patient_marker_values();
+CREATE FUNCTION public.set_updated_at_patient_marker_values()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_patient_marker_values_updated_at
+  BEFORE UPDATE ON public.patient_marker_values
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_patient_marker_values();
+
+-- product_categories
+DROP TRIGGER IF EXISTS trg_product_categories_updated_at ON public.product_categories;
+DROP FUNCTION IF EXISTS public.set_updated_at_product_categories();
+CREATE FUNCTION public.set_updated_at_product_categories()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_product_categories_updated_at
+  BEFORE UPDATE ON public.product_categories
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_product_categories();
+
+
 -- partner_profiles
 DROP TRIGGER IF EXISTS trg_partner_profiles_updated_at ON public.partner_profiles;
 DROP FUNCTION IF EXISTS public.set_updated_at_partner_profiles();
@@ -298,21 +317,6 @@ CREATE TRIGGER trg_admin_products_updated_at
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_admin_products();
 
--- admin_product_images
-DROP TRIGGER IF EXISTS trg_admin_product_images_updated_at ON public.admin_product_images;
-DROP FUNCTION IF EXISTS public.set_updated_at_admin_product_images();
-CREATE FUNCTION public.set_updated_at_admin_product_images()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-CREATE TRIGGER trg_admin_product_images_updated_at
-  BEFORE UPDATE ON public.admin_product_images
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.set_updated_at_admin_product_images();
-
 -- partner_products
 DROP TRIGGER IF EXISTS trg_partner_products_updated_at ON public.partner_products;
 DROP FUNCTION IF EXISTS public.set_updated_at_partner_products();
@@ -327,21 +331,6 @@ CREATE TRIGGER trg_partner_products_updated_at
   BEFORE UPDATE ON public.partner_products
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_partner_products();
-
--- partner_product_images
-DROP TRIGGER IF EXISTS trg_partner_product_images_updated_at ON public.partner_product_images;
-DROP FUNCTION IF EXISTS public.set_updated_at_partner_product_images();
-CREATE FUNCTION public.set_updated_at_partner_product_images()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-CREATE TRIGGER trg_partner_product_images_updated_at
-  BEFORE UPDATE ON public.partner_product_images
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.set_updated_at_partner_product_images();
 
 -- orders
 DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
@@ -376,7 +365,7 @@ CREATE TRIGGER trg_order_items_updated_at
 
 --- NEW: Trigger for auto-populating partner_name and partner_description ---
 
--- Function to automatically set partner_name and partner_description
+-- Function to automatically set partner_product_defaults
 DROP FUNCTION IF EXISTS public.set_partner_product_defaults(); -- Drop if exists for clean update
 CREATE OR REPLACE FUNCTION public.set_partner_product_defaults()
 RETURNS TRIGGER AS $$

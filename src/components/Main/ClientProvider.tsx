@@ -33,7 +33,7 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
                   <Navbar />
                 </div>
               </header>
-              <main className="w-full pt-[14vh] flex flex-col lg:flex-row">
+              <main className="w-full min-h-[100vh] pt-[14vh] flex flex-col lg:flex-row">
                 {children}
               </main>
             </>

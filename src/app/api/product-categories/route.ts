@@ -1,21 +1,23 @@
+//app/api/product-categories/route.ts
+
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
-      .from("admin_products")
+      .from("product_categories")
       .select("*");
 
     if (error) {
-      console.error("Error fetching admin products:", error.message);
+      console.error("Error fetching all product categories:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error fetching admin products:",
+      "Unexpected error in GET /api/product-categories:",
       (err as Error).message
     );
     return NextResponse.json(
@@ -29,45 +31,28 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (!body.name || !body.base_price) {
+    if (!body.name) {
       return NextResponse.json(
-        {
-          error: "Missing required fields (name, base_price) for admin product",
-        },
+        { error: "Missing required field: name for product category" },
         { status: 400 }
       );
     }
 
-    const newProductData = {
-      name: body.name,
-      description: body.description,
-      base_price: body.base_price,
-      sku: body.sku,
-      category_ids: body.category_ids || [],
-      intended_use: body.intended_use,
-      test_type: body.test_type,
-      marker_ids: body.marker_ids || [],
-      result_timeline: body.result_timeline,
-      additional_test_information: body.additional_test_information,
-      corresponding_panels: body.corresponding_panels || [],
-      admin_user_id: body.admin_user_id,
-    };
-
     const { data, error } = await supabaseAdmin
-      .from("admin_products")
-      .insert([newProductData])
+      .from("product_categories")
+      .insert([body])
       .select()
       .single();
 
     if (error) {
-      console.error("Error creating admin product:", error.message);
+      console.error("Error creating product category:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });
   } catch (err) {
     console.error(
-      "Unexpected error creating admin product:",
+      "Unexpected error creating product category:",
       (err as Error).message
     );
     return NextResponse.json(

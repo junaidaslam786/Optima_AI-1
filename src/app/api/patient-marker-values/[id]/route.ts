@@ -1,31 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// GET: Fetch a single admin product image by ID
 export async function GET(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const { id } = await params;
+
     const { data, error } = await supabaseAdmin
-      .from("admin_product_images")
+      .from("patient_marker_values")
       .select("*")
       .eq("id", id)
       .single();
 
     if (error) {
       console.error(
-        `Error fetching admin product image with ID ${id}:`,
+        `Error fetching patient marker value with ID ${id}:`,
         error.message
       );
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.code === "PGRST116" ? 404 : 500 }
+      );
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error fetching admin product image by ID:",
+      "Unexpected error fetching patient marker value by ID:",
       (err as Error).message
     );
     return NextResponse.json(
@@ -35,9 +38,8 @@ export async function GET(
   }
 }
 
-// PUT: Update an admin product image by ID
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
@@ -45,7 +47,7 @@ export async function PATCH(
     const body = await request.json();
 
     const { data, error } = await supabaseAdmin
-      .from("admin_product_images")
+      .from("patient_marker_values")
       .update(body)
       .eq("id", id)
       .select()
@@ -53,16 +55,16 @@ export async function PATCH(
 
     if (error) {
       console.error(
-        `Error updating admin product image with ID ${id}:`,
+        `Error updating patient marker value with ID ${id}:`,
         error.message
       );
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error updating admin product image:",
+      "Unexpected error updating patient marker value:",
       (err as Error).message
     );
     return NextResponse.json(
@@ -72,30 +74,29 @@ export async function PATCH(
   }
 }
 
-// DELETE: Delete an admin product image by ID
 export async function DELETE(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const { id } = await params;
     const { error } = await supabaseAdmin
-      .from("admin_product_images")
+      .from("patient_marker_values")
       .delete()
       .eq("id", id);
 
     if (error) {
       console.error(
-        `Error deleting admin product image with ID ${id}:`,
+        `Error deleting patient marker value with ID ${id}:`,
         error.message
       );
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ deleted: true }, { status: 200 });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(
-      "Unexpected error deleting admin product image:",
+      "Unexpected error deleting patient marker value:",
       (err as Error).message
     );
     return NextResponse.json(
