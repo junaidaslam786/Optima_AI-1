@@ -12,11 +12,12 @@
 // // Helper function to parse CSV text
 // function parseCsv(txt) {
 //   const lines = txt.split(/\r?\n/).filter((line) => line.trim());
-//   if (lines.length === 0)
+//   if (lines.length === 0) {
 //     return {
 //       headings: [],
 //       rows: [],
 //     };
+//   }
 //   const [headerLine, ...rowLines] = lines;
 //   const headings = headerLine.split(",").map((h) => h.trim());
 //   const rows = rowLines.map((line) => {
@@ -36,7 +37,7 @@
 //   value,
 //   normalLow,
 //   normalHigh,
-//   rawStatusFlag = null
+//   rawStatusFlag = null,
 // ) {
 //   if (rawStatusFlag && rawStatusFlag.toLowerCase() === "critical") {
 //     return "critical"; // Prioritize explicit critical flag
@@ -77,7 +78,7 @@
 //         {
 //           status: 400,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     const filenameParts = file.name.split(".");
@@ -92,16 +93,18 @@
 //         {
 //           status: 400,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     // 2️⃣ Upload CSV to Storage
 //     const ts = Date.now();
 //     const objPath = `${client_user_id}/${ts}_${file.name}`;
 //     const uploadRes = await fetch(
-//       `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodeURIComponent(
-//         objPath
-//       )}`,
+//       `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${
+//         encodeURIComponent(
+//           objPath,
+//         )
+//       }`,
 //       {
 //         method: "PUT",
 //         headers: {
@@ -110,7 +113,7 @@
 //           "x-upsert": "false",
 //         },
 //         body: file.stream(),
-//       }
+//       },
 //     );
 //     if (!uploadRes.ok) {
 //       const detail = await uploadRes.text();
@@ -123,7 +126,7 @@
 //         {
 //           status: uploadRes.status,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     // 3️⃣ Record upload metadata in public.uploads
@@ -152,7 +155,7 @@
 //         {
 //           status: 500,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     const [uploadRecord] = await metaRes.json();
@@ -169,52 +172,65 @@
 //         {
 //           status: 400,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     // Use 5 sample rows for AI prompt
 //     const sampleRows = rows.slice(0, Math.min(5, rows.length));
 //     const aiPrompt = `
-//       You are an expert medical data analyst. You are given a CSV with the following headers:
-//       ${JSON.stringify(headings)}.
+//       You are an expert medical data analyst. You are provided with a CSV file's headers and sample rows.
+//       Your goal is to accurately map these to medical fields, extract numerical ranges and units, and provide a status calculation function.
 
-//       Here are sample rows from the CSV:
+//       CSV Headers: ${JSON.stringify(headings)}.
+
+//       Sample Rows from the CSV (first 5):
 //       ${JSON.stringify(sampleRows, null, 2)}
 
-//       Your task:
-//       1. Identify the CSV column that corresponds to each of the following medical fields:
-//           - marker_name
-//           - panel_name
-//           - marker_value
-//           - marker_unit
-//           - normal_range_text
-//           - collection_date
-//           - report_date
-//           - status_flag
-//           - category (if any, related to product_categories table)
+//       Your task consists of two parts:
 
-//       If a field is not directly present, indicate 'null'. The output for column mapping should have these exact keys.
+//       1. **Column Mapping and Data Extraction Logic:**
+//          Identify the CSV column name that best corresponds to each of the following medical fields.
+//          **Crucially, prioritize accurate extraction for 'marker_name', 'marker_unit', 'normal_low', and 'normal_high'.**
 
-//       2. Return a JavaScript function (as a string) named \`calculateStatus\` that takes 4 parameters: \`value\`, \`normalLow\`, \`normalHigh\`, and \`rawStatusFlag\` (string from CSV), and returns one of: "low", "high", "critical", or "normal".
+//          * **marker_name**: This should be the *concise, exact name* of the medical marker (e.g., "Haemoglobin", "Ferritin AT"). **It must NOT include any units, normal range descriptions, or informational notes.** If a column contains both the name and other details, extract only the name.
+//          * **panel_name**: The name of the panel or category the marker belongs to.
+//          * **marker_value**: The numerical result of the marker test.
+//          * **marker_unit**: The unit of measurement for the marker (e.g., "g/L", "mmol/L", "ug/L"). If the unit is not in a dedicated column but can be *derived* from the 'normal_range_text' column or is a common unit for the 'marker_name', infer it.
+//          * **normal_range_text**: The full text description of the normal range, as it appears in the CSV (e.g., "3.35 - 4.12 mmol/L", "< 5", "> 10"). This is important for extracting 'normal_low' and 'normal_high'.
+//          * **normal_low**: The lower bound of the normal range for the marker. This *must* be extracted as a numerical value from the 'normal_range_text' or other relevant column. If only an upper bound (e.g., "< X") is provided, this should be null. If no range, this should be null.
+//          * **normal_high**: The upper bound of the normal range for the marker. This *must* be extracted as a numerical value from the 'normal_range_text' or other relevant column. If only a lower bound (e.g., "> X") is provided, this should be null. If no range, this should be null.
+//          * **collection_date**: The date when the sample was collected.
+//          * **report_date**: The date when the report was issued.
+//          * **status_flag**: A text flag indicating the status (e.g., "Critical", "Low", "High", "Normal").
+//          * **category**: (Optional) A general category for the panel or marker, if present in the CSV and related to product categories.
 
-//       Use this logic:
-//       - If 'rawStatusFlag' is explicitly "Critical" (case-insensitive) or implies a critical state, return "critical".
-//       - If 'value' is less than 'normalLow', return "low".
-//       - If 'value' is greater than 'normalHigh', return "high".
-//       - Otherwise, return "normal".
+//          If a field is not directly present as a column, or if its value can be more accurately inferred/derived from other columns (e.g., normal_low/high from normal_range_text, or unit from common knowledge for the marker), you should provide the *derived value* in place of 'null' for that specific row in the output. The output for column mapping should have these exact keys.
 
-//       Return the output as a JSON object with two keys:
+//       2. **JavaScript Status Calculation Function:**
+//          Return a JavaScript function (as a string) named \`calculateStatus\` that takes 4 parameters: \`value\` (number), \`normalLow\` (number or null), \`normalHigh\` (number or null), and \`rawStatusFlag\` (string from CSV). It should return one of: "low", "high", "critical", or "normal".
+
+//          Use this exact logic:
+//          - If 'rawStatusFlag' is explicitly "Critical" (case-insensitive) or clearly implies a critical state (e.g., "CRITICAL"), return "critical".
+//          - If 'value' is less than 'normalLow' (and normalLow is not null), return "low".
+//          - If 'value' is greater than 'normalHigh' (and normalHigh is not null), return "high".
+//          - Otherwise, return "normal".
+
+//       Return the entire output as a JSON object with two top-level keys: "column_mapping" and "status_logic_function".
+
+//       Example Output Structure (important: normal_low/high and marker_unit can be inferred directly by AI if not explicitly mapped, and should be values not null if inferred):
 //       {
 //         "column_mapping": {
-//           "marker_name": "...",
-//           "panel_name": "...",
-//           "marker_value": "...",
-//           "marker_unit": "...",
-//           "normal_range_text": "...",
-//           "collection_date": "...",
-//           "report_date": "...",
-//           "status_flag": "...",
-//           "category": "..." // This key must be present even if null
+//           "marker_name": "Mapped CSV Column Name (e.g., 'Test Name')",
+//           "panel_name": "Mapped CSV Column Name (e.g., 'Test Group') OR 'null'",
+//           "marker_value": "Mapped CSV Column Name (e.g., 'Result')",
+//           "marker_unit": "Mapped CSV Column Name (e.g., 'Units') OR 'g/L' (if inferred)",
+//           "normal_range_text": "Mapped CSV Column Name (e.g., 'Reference Range')",
+//           "normal_low": "Mapped CSV Column Name (e.g., 'Lower Limit') OR 1.2 (if inferred from 'normal_range_text')",
+//           "normal_high": "Mapped CSV Column Name (e.g., 'Upper Limit') OR 5.6 (if inferred from 'normal_range_text')",
+//           "collection_date": "Mapped CSV Column Name (e.g., 'Draw Date') OR 'null'",
+//           "report_date": "Mapped CSV Column Name (e.g., 'Report Date') OR 'null'",
+//           "status_flag": "Mapped CSV Column Name (e.g., 'Status') OR 'null'",
+//           "category": "Mapped CSV Column Name (e.g., 'Category') OR 'null'"
 //         },
 //         "status_logic_function": "function calculateStatus(value, normalLow, normalHigh, rawStatusFlag) { /* ...logic... */ }"
 //       }
@@ -234,7 +250,7 @@
 //             content: aiPrompt,
 //           },
 //         ],
-//         temperature: 0.3,
+//         temperature: 0.2,
 //         response_format: {
 //           type: "json_object",
 //         },
@@ -251,13 +267,13 @@
 //         {
 //           status: 500,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     const aiJson = await aiRes.json();
 //     console.log(
 //       "AI Raw Response (Parsed JSON):",
-//       JSON.stringify(aiJson, null, 2)
+//       JSON.stringify(aiJson, null, 2),
 //     );
 //     if (
 //       !aiJson ||
@@ -278,7 +294,7 @@
 //         {
 //           status: 500,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     let aiContent;
@@ -288,7 +304,7 @@
 //       console.error(
 //         "Failed to parse AI message content as JSON:",
 //         parseError,
-//         aiJson.choices[0].message.content
+//         aiJson.choices[0].message.content,
 //       );
 //       return new Response(
 //         JSON.stringify({
@@ -298,26 +314,29 @@
 //         {
 //           status: 500,
 //           headers: CORS_HEADERS,
-//         }
+//         },
 //       );
 //     }
 //     const columnMapping = aiContent.column_mapping;
 //     const calculateStatusAI = eval(`(${aiContent.status_logic_function})`); // WARNING: Eval is risky!
+
 //     const categoryCache = new Map();
 //     const panelCache = new Map();
 //     const markerCache = new Map();
+
 //     // 6️⃣ Process each row from the CSV
 //     for (const row of rows) {
 //       // --- Handle Category (if mapped) ---
 //       const categoryName =
 //         columnMapping.category && row[columnMapping.category]
-//           ? row[columnMapping.category]
+//           ? row[columnMapping.category].trim()
 //           : "General";
 //       let category_id;
+
 //       if (categoryCache.has(categoryName)) {
 //         category_id = categoryCache.get(categoryName);
 //       } else {
-//         const catLookup = await fetch(
+//         const catLookupRes = await fetch(
 //           `${SUPABASE_URL}/rest/v1/product_categories?select=id&name=eq.${encodeURIComponent(
 //             categoryName
 //           )}`,
@@ -328,11 +347,16 @@
 //             },
 //           }
 //         );
-//         const catExisting = await catLookup.json();
-//         if (catLookup.ok && Array.isArray(catExisting) && catExisting.length) {
+//         const catExisting = await catLookupRes.json();
+
+//         if (
+//           catLookupRes.ok &&
+//           Array.isArray(catExisting) &&
+//           catExisting.length > 0
+//         ) {
 //           category_id = catExisting[0].id;
 //         } else {
-//           const catCreate = await fetch(
+//           const catCreateRes = await fetch(
 //             `${SUPABASE_URL}/rest/v1/product_categories`,
 //             {
 //               method: "POST",
@@ -348,21 +372,30 @@
 //               }),
 //             }
 //           );
-//           const createdCategory = await catCreate.json();
+//           if (!catCreateRes.ok) {
+//             console.error(
+//               "Error creating category:",
+//               await catCreateRes.text()
+//             );
+//             continue;
+//           }
+//           const createdCategory = await catCreateRes.json();
 //           category_id = createdCategory[0].id;
 //         }
 //         categoryCache.set(categoryName, category_id);
 //       }
+
 //       // --- Handle Panel ---
 //       const panelName =
 //         columnMapping.panel_name && row[columnMapping.panel_name]
-//           ? row[columnMapping.panel_name]
+//           ? row[columnMapping.panel_name].trim()
 //           : "Default Panel";
 //       let panel_id;
+
 //       if (panelCache.has(panelName)) {
 //         panel_id = panelCache.get(panelName);
 //       } else {
-//         const panelLookup = await fetch(
+//         const panelLookupRes = await fetch(
 //           `${SUPABASE_URL}/rest/v1/panels?select=id&name=eq.${encodeURIComponent(
 //             panelName
 //           )}`,
@@ -373,15 +406,16 @@
 //             },
 //           }
 //         );
-//         const panelExisting = await panelLookup.json();
+//         const panelExisting = await panelLookupRes.json();
+
 //         if (
-//           panelLookup.ok &&
+//           panelLookupRes.ok &&
 //           Array.isArray(panelExisting) &&
-//           panelExisting.length
+//           panelExisting.length > 0
 //         ) {
 //           panel_id = panelExisting[0].id;
 //         } else {
-//           const panelCreate = await fetch(`${SUPABASE_URL}/rest/v1/panels`, {
+//           const panelCreateRes = await fetch(`${SUPABASE_URL}/rest/v1/panels`, {
 //             method: "POST",
 //             headers: {
 //               Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
@@ -395,20 +429,29 @@
 //               category_id: category_id,
 //             }),
 //           });
-//           const createdPanel = await panelCreate.json();
+//           if (!panelCreateRes.ok) {
+//             console.error("Error creating panel:", await panelCreateRes.text());
+//             continue;
+//           }
+//           const createdPanel = await panelCreateRes.json();
 //           panel_id = createdPanel[0].id;
 //         }
 //         panelCache.set(panelName, panel_id);
 //       }
+
 //       // --- Extract Marker Details ---
 //       const markerName =
 //         columnMapping.marker_name && row[columnMapping.marker_name]
 //           ? row[columnMapping.marker_name].trim()
 //           : "Unknown Marker";
+//       // AI is now expected to provide marker_unit, normal_low, normal_high directly in mapping if inferred
 //       const markerUnit =
 //         columnMapping.marker_unit && row[columnMapping.marker_unit]
 //           ? row[columnMapping.marker_unit].trim()
-//           : "";
+//           : columnMapping.marker_unit === "null"
+//           ? ""
+//           : columnMapping.marker_unit; // Use AI-inferred if column_mapping is a direct value
+
 //       const rawNormalRangeText =
 //         columnMapping.normal_range_text && row[columnMapping.normal_range_text]
 //           ? row[columnMapping.normal_range_text].trim()
@@ -417,8 +460,14 @@
 //       let normal_low: number | null = null;
 //       let normal_high: number | null = null;
 
-//       if (rawNormalRangeText) {
-//         // Use a regex to robustly find numbers separated by a hyphen or ranges like <X, >X
+//       // Prioritize AI-inferred normal_low/high if they are directly provided in columnMapping (i.e. not column names)
+//       if (
+//         typeof columnMapping.normal_low === "number" ||
+//         (typeof columnMapping.normal_low === "string" &&
+//           columnMapping.normal_low !== "null")
+//       ) {
+//         normal_low = parseFloat(columnMapping.normal_low);
+//       } else if (rawNormalRangeText) {
 //         const rangeMatch = rawNormalRangeText.match(
 //           /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/
 //         );
@@ -435,79 +484,100 @@
 //         }
 //       }
 
-//       // Normalize numeric values for lookup and cache key to avoid floating point issues
-//       const normalizedNormalLow =
-//         normal_low !== null ? parseFloat(normal_low.toFixed(5)) : null; // To 5 decimal places
-//       const normalizedNormalHigh =
-//         normal_high !== null ? parseFloat(normal_high.toFixed(5)) : null; // To 5 decimal places
+//       if (
+//         typeof columnMapping.normal_high === "number" ||
+//         (typeof columnMapping.normal_high === "string" &&
+//           columnMapping.normal_high !== "null")
+//       ) {
+//         normal_high = parseFloat(columnMapping.normal_high);
+//       } else if (rawNormalRangeText) {
+//         // Re-parse if not explicitly mapped by AI, and rawNormalRangeText is available
+//         const rangeMatch = rawNormalRangeText.match(
+//           /(\d+\.?\d*)\s*-\s*(\d+\.?\d*)/
+//         );
+//         const lessThanMatch = rawNormalRangeText.match(/<\s*(\d+\.?\d*)/);
+//         const greaterThanMatch = rawNormalRangeText.match(/>\s*(\d+\.?\d*)/);
+
+//         if (rangeMatch) {
+//           normal_low = parseFloat(rangeMatch[1]); // Need to re-extract both if parsing from text again
+//           normal_high = parseFloat(rangeMatch[2]);
+//         } else if (lessThanMatch) {
+//           normal_high = parseFloat(lessThanMatch[1]);
+//         } else if (greaterThanMatch) {
+//           normal_low = parseFloat(greaterThanMatch[1]);
+//         }
+//       }
 
 //       // Construct a unique key for marker (panel_id is crucial for uniqueness along with other attributes)
 //       const uniqueMarkerKey = `${panel_id}-${markerName}-${markerUnit}-${
-//         normalizedNormalLow ?? "null"
-//       }-${normalizedNormalHigh ?? "null"}`;
-//       let marker_id: string;
+//         normal_low ?? "null"
+//       }-${normal_high ?? "null"}`;
+//       let marker_id;
 
 //       if (markerCache.has(uniqueMarkerKey)) {
-//         marker_id = markerCache.get(uniqueMarkerKey)!;
+//         marker_id = markerCache.get(uniqueMarkerKey);
 //       } else {
-//         // --- CORRECTED MARKER LOOKUP URL FOR NULLS AND DEDUPLICATION ---
 //         let markerLookupUrl = `${SUPABASE_URL}/rest/v1/markers?select=id&marker=eq.${encodeURIComponent(
 //           markerName
 //         )}&unit=eq.${encodeURIComponent(markerUnit)}&panel_id=eq.${panel_id}`;
 
-//         if (normalizedNormalLow !== null) {
-//           markerLookupUrl += `&normal_low=eq.${normalizedNormalLow}`;
+//         // Handle nulls for normal_low and normal_high in URL query parameters
+//         if (normal_low !== null) {
+//           markerLookupUrl += `&normal_low=eq.${normal_low}`;
 //         } else {
-//           markerLookupUrl += `&normal_low=is.null`; // Correct for NULL
+//           markerLookupUrl += `&normal_low=is.null`;
+//         }
+//         if (normal_high !== null) {
+//           markerLookupUrl += `&normal_high=eq.${normal_high}`;
+//         } else {
+//           markerLookupUrl += `&normal_high=is.null`;
 //         }
 
-//         if (normalizedNormalHigh !== null) {
-//           markerLookupUrl += `&normal_high=eq.${normalizedNormalHigh}`;
-//         } else {
-//           markerLookupUrl += `&normal_high=is.null`; // Correct for NULL
-//         }
-//         // --- END CORRECTED MARKER LOOKUP URL ---
-
-//         console.log(`DEBUG: Marker Lookup URL: ${markerLookupUrl}`); // Log the full URL
-//         const markerLookup = await fetch(markerLookupUrl, {
+//         const markerLookupRes = await fetch(markerLookupUrl, {
 //           headers: {
 //             Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
 //             apikey: SERVICE_ROLE_KEY,
 //           },
 //         });
-//         const existingMarker = await markerLookup.json();
-//         console.log(
-//           `DEBUG: Marker Lookup Response for ${markerName} (Key: ${uniqueMarkerKey}):`,
-//           existingMarker
-//         ); // Log response
+//         const existingMarker = await markerLookupRes.json();
 
 //         if (
-//           markerLookup.ok &&
+//           markerLookupRes.ok &&
 //           Array.isArray(existingMarker) &&
-//           existingMarker.length
+//           existingMarker.length > 0
 //         ) {
 //           marker_id = existingMarker[0].id;
 //         } else {
 //           console.log(
 //             `DEBUG: Creating new marker for ${markerName} (Key: ${uniqueMarkerKey}) under panel ${panelName}`
 //           );
-//           const createMarker = await fetch(`${SUPABASE_URL}/rest/v1/markers`, {
-//             method: "POST",
-//             headers: {
-//               Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-//               apikey: SERVICE_ROLE_KEY,
-//               "Content-Type": "application/json",
-//               Prefer: "return=representation",
-//             },
-//             body: JSON.stringify({
-//               panel_id,
-//               marker: markerName,
-//               unit: markerUnit,
-//               normal_low: normal_low,
-//               normal_high: normal_high,
-//             }),
-//           });
-//           const createdMarker = await createMarker.json();
+//           const createMarkerRes = await fetch(
+//             `${SUPABASE_URL}/rest/v1/markers`,
+//             {
+//               method: "POST",
+//               headers: {
+//                 Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+//                 apikey: SERVICE_ROLE_KEY,
+//                 "Content-Type": "application/json",
+//                 Prefer: "return=representation",
+//               },
+//               body: JSON.stringify({
+//                 panel_id,
+//                 marker: markerName,
+//                 unit: markerUnit,
+//                 normal_low: normal_low,
+//                 normal_high: normal_high,
+//               }),
+//             }
+//           );
+//           if (!createMarkerRes.ok) {
+//             console.error(
+//               "Error creating marker:",
+//               await createMarkerRes.text()
+//             );
+//             continue;
+//           }
+//           const createdMarker = await createMarkerRes.json();
 //           marker_id = createdMarker[0].id;
 //         }
 //         markerCache.set(uniqueMarkerKey, marker_id);
@@ -515,7 +585,7 @@
 
 //       // --- Insert into patient_marker_values table ---
 //       const markerValue = parseFloat(
-//         row[columnMapping.marker_value || ""] || "0"
+//         row[columnMapping.marker_value || ""] || "0",
 //       );
 //       const rawStatusFlag =
 //         columnMapping.status_flag && row[columnMapping.status_flag]
@@ -527,18 +597,18 @@
 //           markerValue,
 //           normal_low,
 //           normal_high,
-//           rawStatusFlag
+//           rawStatusFlag,
 //         );
 //       } catch (e) {
 //         console.warn(
 //           "AI status calculation failed or invalid, falling back to heuristic:",
-//           e
+//           e,
 //         );
 //         finalStatus = getMarkerStatusFallback(
 //           markerValue,
 //           normal_low,
 //           normal_high,
-//           rawStatusFlag
+//           rawStatusFlag,
 //         );
 //       }
 //       finalStatus = finalStatus || "normal";
@@ -574,7 +644,7 @@
 //             Prefer: "return=minimal",
 //           },
 //           body: JSON.stringify(patientMarkerPayload),
-//         }
+//         },
 //       );
 //       if (!insertPatientMarkerRes.ok) {
 //         const detail = await insertPatientMarkerRes.text();
@@ -582,7 +652,7 @@
 //           "Patient marker value insert failed for payload:",
 //           patientMarkerPayload,
 //           "Detail:",
-//           detail
+//           detail,
 //         );
 //       }
 //     }
@@ -594,7 +664,7 @@
 //       {
 //         status: 201,
 //         headers: CORS_HEADERS,
-//       }
+//       },
 //     );
 //   } catch (err) {
 //     console.error("Unexpected error in upload-csv function:", err);
@@ -606,7 +676,7 @@
 //       {
 //         status: 500,
 //         headers: CORS_HEADERS,
-//       }
+//       },
 //     );
 //   }
 // });

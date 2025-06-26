@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import type { JSX } from "react";
 import { PageHeader } from "./PageHeader";
 import { HormonesTable } from "./HormonesTable";
 import { Callout } from "./Callout";
@@ -11,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Marker } from "@/redux/features/markers/markersTypes";
 import { Panel } from "@/redux/features/panels/panelsTypes";
 import { supabase } from "@/lib/supabase";
+import { withAuth } from "../Auth/withAuth";
 
 interface Props {
   userId: string;
@@ -21,7 +23,7 @@ type MergedMarker = Marker & {
   status: string;
 };
 
-export default function ClientDashboard({ userId }: Props) {
+const ClientDashboard: React.FC<Props> = ({ userId }: Props): JSX.Element => {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,6 @@ export default function ClientDashboard({ userId }: Props) {
     const load = async () => {
       setLoading(true);
 
-      // 1️⃣ Get patient_marker_values for this user
       const { data: values, error: vErr } = await supabase
         .from("patient_marker_values")
         .select("*")
@@ -43,7 +44,7 @@ export default function ClientDashboard({ userId }: Props) {
 
       if (vErr || !values || values.length === 0) {
         setLoading(false);
-        return; // Show nothing if no data
+        return;
       }
 
       const markerIds = [...new Set(values.map((v) => v.marker_id))];
@@ -93,31 +94,41 @@ export default function ClientDashboard({ userId }: Props) {
       });
 
       // 5️⃣ Generate insights
-      const { data: insightRaw, error: iErr } = await supabase.functions.invoke(
-        "generate-insights",
-        {
-          body: { user_id: userId },
+      try {
+        const response = await fetch("/api/insights", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      );
-      if (iErr) console.error(iErr);
 
-      const insightsText = (insightRaw as string) || "";
-      const parsedInsights: Record<string, string> = {};
-      const rawSections = insightsText.split(/^###\s+/m);
-      for (let i = 1; i < rawSections.length; i++) {
-        const section = rawSections[i];
-        const firstLineBreak = section.indexOf("\n");
-        if (firstLineBreak === -1) continue;
-        const panelName = section.slice(0, firstLineBreak).trim();
-        const body = section.slice(firstLineBreak + 1).trim();
-        parsedInsights[panelName] = body;
+        const insightRaw = await response.json();
+
+        const insightsText = (insightRaw as string) || "";
+        const parsedInsights: Record<string, string> = {};
+        const rawSections = insightsText.split(/^###\s+/m);
+        for (let i = 1; i < rawSections.length; i++) {
+          const section = rawSections[i];
+          const firstLineBreak = section.indexOf("\n");
+          if (firstLineBreak === -1) continue;
+          const panelName = section.slice(0, firstLineBreak).trim();
+          const body = section.slice(firstLineBreak + 1).trim();
+          parsedInsights[panelName] = body;
+        }
+        setPanels(panelsRaw);
+        setByPanel(groupedByPanel);
+        setPanelInsights(parsedInsights);
+        setLoading(false);
+      } catch (iErr: unknown) {
+        console.error("Insights API call error:", iErr);
+        setLoading(false);
       }
-      setPanels(panelsRaw);
-      setByPanel(groupedByPanel);
-      setPanelInsights(parsedInsights);
-      setLoading(false);
     };
-
     load();
   }, [userId]);
 
@@ -146,7 +157,7 @@ export default function ClientDashboard({ userId }: Props) {
   return (
     <div className="w-full min-h-screen pb-12">
       <PageHeader />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
         {panels.map((panel) => {
           const panelName = panel.name;
           const thisPanelMarkers = byPanel[panel.id] || [];
@@ -161,7 +172,7 @@ export default function ClientDashboard({ userId }: Props) {
             <React.Fragment key={panel.id}>
               <section
                 onClick={() => handleClick(panel.id, panel.name)}
-                className="cursor-pointer hover:shadow-lg bg-primary/10 shadow rounded-lg p-6 transition"
+                className="w-full cursor-pointer hover:shadow-lg bg-primary/10 shadow rounded-lg p-6 transition"
               >
                 <h2 className="text-lg font-semibold text-primary mb-4">
                   {thisPanelMarkers && panelName}
@@ -191,4 +202,6 @@ export default function ClientDashboard({ userId }: Props) {
       </div>
     </div>
   );
-}
+};
+
+export default withAuth(ClientDashboard, { allowedRoles: ["client"] });

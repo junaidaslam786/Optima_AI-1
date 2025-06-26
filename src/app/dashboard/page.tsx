@@ -9,5 +9,9 @@ export default async function DashboardPage() {
     redirect("/auth/signin");
   }
 
-  return <ClientDashboard userId={session.user.id} />;
+  return (
+    <div className="w-full min-h-screen bg-primary/10 p-12">
+      <ClientDashboard userId={session.user.id} />
+    </div>
+  );
 }

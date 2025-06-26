@@ -27,9 +27,7 @@ export default async function ResultsPage() {
 
   const { data: markers, error: mErr } = await supabaseAdmin
     .from("markers")
-    .select(
-      "id, marker, value, unit, normal_low, normal_high, status, panel_id"
-    )
+    .select("*")
     .eq("panel_id", panelId);
 
   if (mErr) {
