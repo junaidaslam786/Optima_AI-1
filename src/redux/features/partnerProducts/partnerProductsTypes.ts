@@ -17,12 +17,10 @@ export interface CreatePartnerProduct {
   partner_id: string;
   admin_product_id: string;
   partner_price: number;
-  partner_name?: string; // Optional, can be provided or left for trigger
-  partner_description?: string; // Optional, can be provided or left for trigger
+  partner_name?: string;
+  partner_description?: string;
   partner_keywords?: string[];
-  is_active?: boolean; // Default TRUE
-  product_image_urls?: string[];
-  thumbnail_url?: string;
+  is_active?: boolean;
 }
 
 export interface UpdatePartnerProduct {
@@ -34,6 +32,12 @@ export interface UpdatePartnerProduct {
   partner_description?: string;
   partner_keywords?: string[];
   is_active?: boolean;
+  product_image_urls?: string[];
+  thumbnail_url?: string;
+}
+
+export interface PartnerProductImages {
+  id: string;
   product_image_urls?: string[];
   thumbnail_url?: string;
 }

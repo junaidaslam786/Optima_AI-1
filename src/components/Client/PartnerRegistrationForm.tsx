@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import { toast } from "react-hot-toast";
-import { api } from "@/lib/api-client";
-import { PartnerProfile } from "@/types/db";
-import { useSession } from "next-auth/react";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { useSession } from "next-auth/react"; // Make sure this path is correct
+import FullPageLoader from "@/components/ui/FullPageLoader"; // Import the FullPageLoader
 import { withAuth } from "../Auth/withAuth";
-import { CreatePartnerProfile } from "@/types/db";
+import { CreatePartnerProfile } from "@/redux/features/partnerProfiles/partnerProfilesTypes";
+import { useCreatePartnerProfileMutation } from "@/redux/features/partnerProfiles/partnerProfilesApi"; // Import the RTK Query hook
 
 const PartnerRegistrationForm: React.FC = () => {
   const { data: session, status } = useSession();
@@ -32,38 +30,75 @@ const PartnerRegistrationForm: React.FC = () => {
   const [partnerStatus, setPartnerStatus] =
     useState<CreatePartnerProfile["partner_status"]>("pending");
 
-  const registerPartnerMutation = useMutation<
-    PartnerProfile,
-    Error,
-    CreatePartnerProfile
-  >({
-    mutationFn: (newPartnerData) =>
-      api.post<PartnerProfile>(
-        "/partner_profiles",
-        newPartnerData as unknown as Record<string, unknown>
-      ),
-    onSuccess: () => {
+  // Redux Toolkit Query mutation hook
+  const [
+    createPartnerProfile,
+    {
+      isLoading: isCreatingPartner, // RTK Query gives us isLoading directly
+      isSuccess: createSuccess,
+      isError: createError,
+      error: createErrorDetails,
+    },
+  ] = useCreatePartnerProfileMutation();
+
+  // Handle side effects of the mutation (success/error toasts)
+  useEffect(() => {
+    if (createSuccess) {
       toast.success("Partner registration submitted! Awaiting approval.");
+      // Reset form fields on success
       setCompanyName("");
       setCompanySlug("");
-      setContactEmail(user?.email || "");
+      setContactEmail(user?.email || ""); // Reset to current user email or empty
       setCompanyDescription("");
       setContactPersonName("");
       setContactPhone("");
       setAddress("");
       setCountry("");
       setPartnerStatus("pending");
-    },
-    onError: (error) => {
-      toast.error(`Failed to register partner: ${error.message}`);
-    },
-  });
+    }
+    if (createError) {
+      let errorMessage = "Failed to register partner: Unknown error";
+      // Assuming createErrorDetails might be an object with 'data' or 'error' property from RTK Query
+      if (
+        createErrorDetails &&
+        "data" in createErrorDetails &&
+        typeof createErrorDetails.data === "string"
+      ) {
+        errorMessage = `Failed to register partner: ${createErrorDetails.data}`;
+      } else if (
+        createErrorDetails &&
+        "message" in createErrorDetails &&
+        typeof createErrorDetails.message === "string"
+      ) {
+        errorMessage = `Failed to register partner: ${createErrorDetails.message}`;
+      } else if (
+        createErrorDetails &&
+        "error" in createErrorDetails &&
+        typeof createErrorDetails.error === "string"
+      ) {
+        errorMessage = `Failed to register partner: ${createErrorDetails.error}`;
+      }
+      toast.error(errorMessage);
+    }
+  }, [createSuccess, createError, createErrorDetails, user?.email]); // Add user?.email to dependency array
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Basic validation
+    if (!user?.id) {
+      toast.error("User ID not available. Please log in.");
+      return;
+    }
+    if (!companyName || !companySlug || !contactEmail) {
+      toast.error(
+        "Please fill in all required fields (Company Name, Company Slug, Contact Email)."
+      );
+      return;
+    }
+
     const payload: CreatePartnerProfile = {
-      user_id: user?.id || "",
+      user_id: user.id, // Ensure user.id is used here
       company_name: companyName,
       company_slug: companySlug,
       contact_email: contactEmail,
@@ -76,24 +111,31 @@ const PartnerRegistrationForm: React.FC = () => {
       partner_status: partnerStatus,
     };
 
-    registerPartnerMutation.mutate(payload);
+    try {
+      await createPartnerProfile(payload).unwrap();
+      // Success is handled by the useEffect above
+    } catch (err) {
+      // Error is handled by the useEffect above
+      console.error("Partner registration submission failed:", err);
+    }
   };
 
+  // Determine global loading state for the FullPageLoader
+  const globalLoading = sessionLoading || isCreatingPartner;
+  let globalLoadingMessage = "";
   if (sessionLoading) {
-    return (
-      <div className="w-full flex justify-center items-center">
-        <LoadingSpinner />
-        <p className="ml-2">Loading user data...</p>
-      </div>
-    );
+    globalLoadingMessage = "Loading user data...";
+  } else if (isCreatingPartner) {
+    globalLoadingMessage = "Submitting partner registration...";
   }
 
   return (
-    <div className="w-full mx-auto p-8 bg-white shadow-lg rounded-lg">
+    <div className="w-full mx-auto p-8 bg-white shadow-lg rounded-lg relative">
+      {" "}
+      {/* Add relative for FullPageLoader positioning */}
       <h2 className="text-3xl font-bold text-primary mb-6 text-center">
         Become Our Partner
       </h2>
-
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -126,8 +168,7 @@ const PartnerRegistrationForm: React.FC = () => {
           required
           placeholder="contact@yourcompany.com"
         />
-        <div></div>
-
+        <div></div> {/* Empty div for grid alignment */}
         {/* Optional Fields */}
         <Input
           id="contactPersonName"
@@ -165,18 +206,23 @@ const PartnerRegistrationForm: React.FC = () => {
           onChange={(e) => setCompanyDescription(e.target.value)}
           placeholder="Brief description about your company"
         />
-
         {/* Submit Button */}
         <div className="col-span-full flex justify-end">
           <Button
             type="submit"
-            isLoading={registerPartnerMutation.isPending || sessionLoading}
+            isLoading={isCreatingPartner} // Only show button loader for the specific mutation
             className="w-full md:w-auto"
+            disabled={sessionLoading || isCreatingPartner} // Disable if session loading or mutation in progress
           >
             Submit Registration
           </Button>
         </div>
       </form>
+      {/* Full Page Loader */}
+      <FullPageLoader
+        isLoading={globalLoading}
+        message={globalLoadingMessage}
+      />
     </div>
   );
 };

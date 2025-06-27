@@ -9,7 +9,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const patientMarkerValuesApi = createApi({
   reducerPath: "patientMarkerValuesApi",
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/patientMarkerValues` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/patient_marker_values` }),
   tagTypes: ["PatientMarkerValue"],
   endpoints: (builder) => ({
     getPatientMarkerValues: builder.query<PatientMarkerValue[], void>({

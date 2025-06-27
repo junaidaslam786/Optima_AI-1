@@ -1,19 +1,18 @@
-// components/admin/PartnerApprovalList.tsx
 "use client";
 
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { api } from "@/lib/api-client";
-import { PartnerProfile } from "@/types/db";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import PartnerDetailsModal from "@/components/Admin/PartnerDetailsModal";
+import {
+  useGetPartnerProfilesQuery,
+  useUpdatePartnerProfileMutation,
+} from "@/redux/features/partnerProfiles/partnerProfilesApi";
 
 const PartnerApprovalList: React.FC = () => {
-  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedPartnerIdForDetails, setSelectedPartnerIdForDetails] =
@@ -33,46 +32,60 @@ const PartnerApprovalList: React.FC = () => {
     isLoading,
     isError,
     error,
-  } = useQuery<PartnerProfile[], Error>({
-    queryKey: ["partnerProfiles"],
-    queryFn: () => api.get("/partner_profiles"),
-  });
+  } = useGetPartnerProfilesQuery();
 
-  const updatePartnerStatusMutation = useMutation<
-    PartnerProfile,
-    Error,
+  const [
+    updatePartnerProfileMutation,
     {
-      id: string;
-      partner_status: "approved" | "rejected";
-      approval_date: string;
+      isLoading: isUpdatingStatus,
+      isSuccess,
+      isError: updateError,
+      error: updateErrorDetails,
+    },
+  ] = useUpdatePartnerProfileMutation();
+
+  React.useEffect(() => {
+    if (isSuccess) {
+      toast.success(`Partner ${selected?.action} successfully!`);
+      setSelected(null);
     }
-  >({
-    mutationFn: ({ id, partner_status, approval_date }) =>
-      api.patch(`/partner_profiles/${id}`, { partner_status, approval_date }),
-    onSuccess: (_, variables) => {
-      toast.success(`Partner ${variables.partner_status} successfully!`);
-      queryClient.invalidateQueries({ queryKey: ["partnerProfiles"] });
-    },
-    onError: (err) => {
-      toast.error(`Failed to update partner status: ${err.message}`);
-    },
-  });
+    if (updateError) {
+      let errorMessage = "Unknown error";
+      if (updateErrorDetails) {
+        if (
+          "message" in updateErrorDetails &&
+          typeof updateErrorDetails.message === "string"
+        ) {
+          errorMessage = updateErrorDetails.message;
+        } else if (
+          "data" in updateErrorDetails &&
+          typeof updateErrorDetails.data === "string"
+        ) {
+          errorMessage = updateErrorDetails.data;
+        }
+      }
+      toast.error(`Failed to update partner status: ${errorMessage}`);
+    }
+  }, [isSuccess, updateError, updateErrorDetails, selected]);
 
   const openConfirm = (id: string, action: "approved" | "rejected") => {
     setSelected({ id, action });
     setModalOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selected) {
-      updatePartnerStatusMutation.mutate({
-        id: selected.id,
-        partner_status: selected.action,
-        approval_date: currentDate,
-      });
+      try {
+        await updatePartnerProfileMutation({
+          id: selected.id,
+          partner_status: selected.action,
+          approval_date: currentDate,
+        }).unwrap();
+      } catch (err) {
+        console.error("Failed to update partner status:", err);
+      }
     }
     setModalOpen(false);
-    setSelected(null);
   };
 
   const openDetailsModal = (partnerId: string) => {
@@ -80,7 +93,6 @@ const PartnerApprovalList: React.FC = () => {
     setShowDetailsModal(true);
   };
 
-  // Function to close the details modal
   const closeDetailsModal = () => {
     setShowDetailsModal(false);
     setSelectedPartnerIdForDetails(null);
@@ -98,7 +110,18 @@ const PartnerApprovalList: React.FC = () => {
   if (isError) {
     return (
       <div className="w-full text-center p-8 bg-secondary border border-secondary text-secondary rounded-lg mx-auto">
-        Error: {error?.message || "Failed to load partners"}
+        Error:{" "}
+        {error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string"
+          ? error.message
+          : error &&
+            typeof error === "object" &&
+            "data" in error &&
+            typeof error.data === "string"
+          ? error.data
+          : "Failed to load partners"}
       </div>
     );
   }
@@ -151,7 +174,7 @@ const PartnerApprovalList: React.FC = () => {
                       variant="primary"
                       size="sm"
                       onClick={() => openConfirm(partner.id, "approved")}
-                      isLoading={updatePartnerStatusMutation.isPending}
+                      isLoading={isUpdatingStatus}
                     >
                       Approve
                     </Button>
@@ -159,7 +182,7 @@ const PartnerApprovalList: React.FC = () => {
                       variant="danger"
                       size="sm"
                       onClick={() => openConfirm(partner.id, "rejected")}
-                      isLoading={updatePartnerStatusMutation.isPending}
+                      isLoading={isUpdatingStatus}
                     >
                       Reject
                     </Button>
@@ -224,7 +247,6 @@ const PartnerApprovalList: React.FC = () => {
         onConfirm={handleConfirm}
         onCancel={() => setModalOpen(false)}
       />
-      {/* PartnerDetailsModal integration */}
       <PartnerDetailsModal
         isOpen={showDetailsModal}
         onClose={closeDetailsModal}

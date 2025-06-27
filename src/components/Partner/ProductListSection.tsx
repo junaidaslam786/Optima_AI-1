@@ -1,14 +1,16 @@
 // components/partner/ProductListSection.tsx
 import React from "react";
 import PartnerProductList from "@/components/Partner/PartnerProductList";
-import { PartnerProduct } from "@/types/db";
+import { PartnerProduct } from "@/redux/features/partnerProducts/partnerProductsTypes";
+import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { SerializedError } from "@reduxjs/toolkit";
 
 interface ProductListSectionProps {
   products: PartnerProduct[];
   selectedId: string | null;
   isLoading: boolean;
   isError: boolean;
-  error?: Error;
+  error?: FetchBaseQueryError | SerializedError;
   onSelect: (product: PartnerProduct) => void;
 }
 
@@ -28,7 +30,15 @@ const ProductListSection: React.FC<ProductListSectionProps> = ({
         selectedId={selectedId}
         isLoading={isLoading}
         isError={isError}
-        error={error}
+        error={
+          error
+            ? new Error(
+                typeof error === "object" && "message" in error
+                  ? (error as { message?: string }).message
+                  : JSON.stringify(error)
+              )
+            : undefined
+        }
         onSelect={onSelect}
       />
     </div>

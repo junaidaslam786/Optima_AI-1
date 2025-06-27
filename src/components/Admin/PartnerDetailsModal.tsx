@@ -1,12 +1,10 @@
-// components/admin/PartnerDetailsModal.tsx
 "use client";
 
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
-import { PartnerProfile, User } from "@/types/db";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Button from "@/components/ui/Button";
+import { useGetPartnerProfileByIdQuery } from "@/redux/features/partnerProfiles/partnerProfilesApi";
+import { useGetUserByIdQuery } from "@/redux/features/users/usersApi";
 
 interface PartnerDetailsModalProps {
   isOpen: boolean;
@@ -24,15 +22,8 @@ const PartnerDetailsModal: React.FC<PartnerDetailsModalProps> = ({
     isLoading: isPartnerLoading,
     isError: isPartnerError,
     error: partnerError,
-  } = useQuery<PartnerProfile, Error>({
-    queryKey: ["partnerProfile", partnerId],
-    queryFn: () => {
-      if (!partnerId) {
-        throw new Error("Partner ID is required to fetch profile.");
-      }
-      return api.get(`/partner_profiles/${partnerId}`);
-    },
-    enabled: !!partnerId && isOpen,
+  } = useGetPartnerProfileByIdQuery(partnerId || "", {
+    skip: !partnerId || !isOpen,
   });
 
   const {
@@ -40,18 +31,10 @@ const PartnerDetailsModal: React.FC<PartnerDetailsModalProps> = ({
     isLoading: isUserLoading,
     isError: isUserError,
     error: userError,
-  } = useQuery<User, Error>({
-    queryKey: ["userDetails", partnerProfile?.user_id],
-    queryFn: () => {
-      if (!partnerProfile?.user_id) {
-        throw new Error("User ID is required to fetch user details.");
-      }
-      return api.get(`/users/${partnerProfile.user_id}`);
-    },
-    enabled: !!partnerProfile?.user_id && isOpen, // Only run query if user_id is present and modal is open
+  } = useGetUserByIdQuery(partnerProfile?.user_id || "", {
+    skip: !partnerProfile?.user_id || !isOpen,
   });
 
-  // If the modal is not open, don't render anything
   if (!isOpen) return null;
 
   const renderDetailRow = (label: string, value: string | undefined | null) => (
@@ -101,23 +84,48 @@ const PartnerDetailsModal: React.FC<PartnerDetailsModalProps> = ({
         {(isPartnerError || isUserError) && (
           <div className="text-center p-4 text-danger">
             <p>
-              Error loading details:{" "}
-              {partnerError?.message || userError?.message || "Unknown error"}
+              Error loading details:
+              {(() => {
+                type ErrorWithMessage = { message?: string; data?: string };
+                const getErrorMessage = (error: unknown) => {
+                  if (!error) return null;
+                  if (typeof error === "object" && error !== null) {
+                    const err = error as ErrorWithMessage;
+                    if ("message" in err && typeof err.message === "string") {
+                      return err.message;
+                    }
+                    if ("data" in err && typeof err.data === "string") {
+                      return err.data;
+                    }
+                  }
+                  return null;
+                };
+                return (
+                  getErrorMessage(partnerError) ||
+                  getErrorMessage(userError) ||
+                  "Unknown error"
+                );
+              })()}
             </p>
           </div>
         )}
 
-        {/* Divide details into two columns for screens larger than lg */}
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
           {partnerProfile && (
-            <div className="mb-6 lg:mb-0"> {/* Added lg:mb-0 to remove bottom margin on larger screens */}
+            <div className="mb-6 lg:mb-0">
               <h3 className="text-xl font-semibold text-secondary-dark mb-3">
                 Partner Profile Information
               </h3>
               {renderDetailRow("Company Name", partnerProfile.company_name)}
               {renderDetailRow("Company Slug", partnerProfile.company_slug)}
-              {renderDetailRow("Description", partnerProfile.company_description)}
-              {renderDetailRow("Contact Person", partnerProfile.contact_person_name)}
+              {renderDetailRow(
+                "Description",
+                partnerProfile.company_description
+              )}
+              {renderDetailRow(
+                "Contact Person",
+                partnerProfile.contact_person_name
+              )}
               {renderDetailRow("Contact Email", partnerProfile.contact_email)}
               {renderDetailRow("Contact Phone", partnerProfile.contact_phone)}
               {renderDetailRow("Address", partnerProfile.address)}
@@ -129,7 +137,10 @@ const PartnerDetailsModal: React.FC<PartnerDetailsModalProps> = ({
                   ? new Date(partnerProfile.approval_date).toDateString()
                   : "N/A"
               )}
-              {renderDetailRow("Rejection Reason", partnerProfile.rejection_reason)}
+              {renderDetailRow(
+                "Rejection Reason",
+                partnerProfile.rejection_reason
+              )}
               {renderDetailRow("Notes", partnerProfile.notes)}
               {renderDetailRow(
                 "Created At",

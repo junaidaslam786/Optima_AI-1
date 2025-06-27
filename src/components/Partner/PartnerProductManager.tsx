@@ -1,262 +1,315 @@
-// components/partner/PartnerProductManager.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect, FormEvent } from "react";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
 import ProductListSection from "@/components/Partner/ProductListSection";
-import ProductFormSection from "@/components/Partner/ProductFormSection";
-import PartnerProductImages from "@/components/Partner/PartnerProductImages"; // Directly import PartnerProductImages
+import PartnerProductImages from "@/components/Partner/PartnerProductImages";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import { api } from "@/lib/api-client";
+import FullPageLoader from "@/components/ui/FullPageLoader";
+import { useSession } from "next-auth/react";
 import {
-  PartnerProfile,
-  AdminProduct,
-  PartnerProduct,
-  PartnerProductImage,
-  CreatePartnerProduct,
   UpdatePartnerProduct,
-} from "@/types/db";
+  CreatePartnerProduct,
+  PartnerProduct,
+} from "@/redux/features/partnerProducts/partnerProductsTypes";
+import { useGetPartnerProfileByUserIdQuery } from "@/redux/features/partnerProfiles/partnerProfilesApi";
+import { useGetAdminProductsQuery } from "@/redux/features/adminProducts/adminProductsApi";
+import {
+  useCreatePartnerProductMutation,
+  useUpdatePartnerProductMutation,
+  useDeletePartnerProductMutation,
+  useGetPartnerProductsByPartnerIdQuery,
+  useGetPartnerProductByIdQuery,
+} from "@/redux/features/partnerProducts/partnerProductsApi";
+import PartnerProductForm from "./PartnerProductForm";
+
+type FormState = CreatePartnerProduct & { id?: string; [key: string]: unknown };
+
+const INITIAL_FORM: FormState = {
+  admin_product_id: "",
+  partner_price: 0,
+  partner_name: undefined,
+  partner_description: undefined,
+  partner_keywords: [],
+  is_active: true,
+  partner_id: "",
+};
+
+function clean<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const out: Partial<T> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (
+        value !== undefined &&
+        value !== null &&
+        !(typeof value === "string" && value.trim() === "") &&
+        !(Array.isArray(value) && value.length === 0)
+      ) {
+        out[key] = value;
+      }
+    }
+  }
+  return out;
+}
 
 const PartnerProductManager: React.FC = () => {
-  const { data: session, status } = useSession();
-  const user = session?.user;
-  const loading = status === "loading";
-  const qc = useQueryClient();
+  const [formState, setFormState] = useState<FormState>(INITIAL_FORM);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
-  // State for partner profile and product form
-  const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [form, setForm] = useState<UpdatePartnerProduct>({
-    id: "",
-    partner_id: "",
-    admin_product_id: "",
-    partner_price: 0,
-    is_active: true,
-  });
+  const { data: session, status: sessionStatus } = useSession();
+  const userId = session?.user?.id;
+  const isSessionLoading = sessionStatus === "loading";
 
-  // State for image upload
-  const [newImageUrl, setNewImageUrl] = useState<string>("");
-  const [newImageFile, setNewImageFile] = useState<File | null>(null);
-  const [isNewImageThumbnail, setIsNewImageThumbnail] =
-    useState<boolean>(false);
+  const { data: profileData, isLoading: profileLoading } =
+    useGetPartnerProfileByUserIdQuery(userId || "", {
+      skip: !userId || isSessionLoading,
+      selectFromResult: ({ data, ...rest }) => ({
+        data: data?.find((p) => p.user_id === userId) || null,
+        ...rest,
+      }),
+    });
 
-  // Data Queries
-  const { data: profile } = useQuery<
-    PartnerProfile[],
-    Error,
-    PartnerProfile | null
-  >({
-    queryKey: ["myPartnerProfile", user?.id],
-    queryFn: () => api.get(`/partner_profiles?user_id=${user?.id}`),
-    enabled: !!user?.id && !loading,
-    select: (profiles) => profiles.find((p) => p.user_id === user?.id) || null,
-  });
-
-  useEffect(() => {
-    if (profile?.partner_status === "approved") {
-      setPartnerId(profile.id);
-    } else {
-      setPartnerId(null);
-    }
-  }, [profile]);
-
-  const { data: adminProducts = [] } = useQuery<AdminProduct[], Error>({
-    queryKey: ["allAdminProducts"],
-    queryFn: () => api.get("/admin_products"),
-  });
+  const partnerId =
+    profileData?.partner_status === "approved" ? profileData.id : null;
 
   const {
     data: myProducts = [],
     isLoading: myProductsLoading,
     isError: myProductsError,
-    error: myProductsErrorObj,
-  } = useQuery<PartnerProduct[], Error>({
-    queryKey: ["myPartnerProducts", partnerId],
-    queryFn: () => api.get(`/partner_products?partner_id=${partnerId}`),
-    enabled: !!partnerId,
+    error: myProductsFetchError,
+  } = useGetPartnerProductsByPartnerIdQuery(partnerId || "", {
+    skip: !partnerId,
   });
 
   const {
-    data: images = [],
-    isLoading: imagesLoading,
-    isError: imagesError,
-    error: imagesErrorObj,
-  } = useQuery<PartnerProductImage[], Error>({
-    queryKey: ["partnerProductImages", selectedId],
-    queryFn: () =>
-      api.get(`/partner_product_images?partner_product_id=${selectedId}`),
-    enabled: !!selectedId,
+    data: selectedProductDetails,
+    isLoading: selectedProductDetailsLoading,
+    isError: selectedProductDetailsError,
+    error: selectedProductDetailsFetchError,
+  } = useGetPartnerProductByIdQuery(selectedProductId || "", {
+    skip: !selectedProductId,
   });
 
-  // Mutations
-  const createMut = useMutation<PartnerProduct, Error, CreatePartnerProduct>({
-    mutationFn: (newListing) =>
-      api.post(
-        "/partner_products",
-        newListing as unknown as Record<string, unknown>
-      ),
-    onSuccess: () => {
-      toast.success("Listing created!");
-      if (partnerId) {
-        qc.invalidateQueries({ queryKey: ["myPartnerProducts", partnerId] });
-      }
-      setForm({
-        id: "",
-        partner_id: "",
-        admin_product_id: "",
-        partner_price: 0,
-        is_active: true,
+  const { data: adminProducts = [], isLoading: adminProductsLoading } =
+    useGetAdminProductsQuery();
+
+  const [
+    createPartnerProduct,
+    {
+      isLoading: createLoading,
+      isSuccess: createSuccess,
+      isError: createError,
+      error: createErrorDetails,
+    },
+  ] = useCreatePartnerProductMutation();
+
+  const [
+    updatePartnerProduct,
+    {
+      isLoading: updateLoading,
+      isSuccess: updateSuccess,
+      isError: updateError,
+      error: updateErrorDetails,
+    },
+  ] = useUpdatePartnerProductMutation();
+
+  const [
+    deletePartnerProduct,
+    {
+      isLoading: deleteLoading,
+      isSuccess: deleteSuccess,
+      isError: deleteError,
+      error: deleteErrorDetails,
+    },
+  ] = useDeletePartnerProductMutation();
+
+  useEffect(() => {
+    if (profileLoading || isSessionLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Loading user profile...");
+    } else if (myProductsLoading || adminProductsLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Loading products...");
+    } else if (selectedProductDetailsLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Loading product details...");
+    } else if (createLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Creating listing...");
+    } else if (updateLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Updating listing...");
+    } else if (deleteLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Deleting listing...");
+    } else {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  }, [
+    profileLoading,
+    isSessionLoading,
+    myProductsLoading,
+    adminProductsLoading,
+    selectedProductDetailsLoading,
+    createLoading,
+    updateLoading,
+    deleteLoading,
+  ]);
+
+  useEffect(() => {
+    if (selectedProductId && selectedProductDetails) {
+      setFormState({
+        id: selectedProductDetails.id,
+        partner_id: selectedProductDetails.partner_id,
+        admin_product_id: selectedProductDetails.admin_product_id,
+        partner_price: selectedProductDetails.partner_price,
+        partner_name: selectedProductDetails.partner_name ?? undefined,
+        partner_description:
+          selectedProductDetails.partner_description ?? undefined,
+        partner_keywords: selectedProductDetails.partner_keywords || [],
+        is_active: selectedProductDetails.is_active ?? true,
       });
-    },
-    onError: (e) => toast.error(`Create failed: ${e.message}`),
-  });
+    } else if (!selectedProductId) {
+      setFormState({ ...INITIAL_FORM, partner_id: partnerId || "" });
+    }
+  }, [selectedProductId, selectedProductDetails, partnerId]);
 
-  const updateMut = useMutation<PartnerProduct, Error, UpdatePartnerProduct>({
-    mutationFn: ({ id, ...body }) => api.patch(`/partner_products/${id}`, body),
-    onSuccess: () => {
-      toast.success("Listing updated!");
-      if (partnerId) {
-        qc.invalidateQueries({ queryKey: ["myPartnerProducts", partnerId] });
+  useEffect(() => {
+    if (createSuccess) {
+      toast.success("Listing Created Successfully!");
+      setSelectedProductId(null);
+      setFormState({ ...INITIAL_FORM, partner_id: partnerId || "" });
+    }
+    if (createError) {
+      let errorMsg = "Unknown error";
+      if (createErrorDetails) {
+        if (
+          "message" in createErrorDetails &&
+          typeof createErrorDetails.message === "string"
+        ) {
+          errorMsg = createErrorDetails.message;
+        } else if (
+          "data" in createErrorDetails &&
+          typeof createErrorDetails.data === "string"
+        ) {
+          errorMsg = createErrorDetails.data;
+        }
       }
-    },
-    onError: (e) => toast.error(`Update failed: ${e.message}`),
-  });
+      toast.error(`Failed to create listing: ${errorMsg}`);
+    }
+  }, [createSuccess, createError, createErrorDetails, partnerId]);
 
-  const deleteMut = useMutation<null, Error, string>({
-    mutationFn: (id) => api.delete(`/partner_products/${id}`),
-    onSuccess: () => {
-      toast.success("Listing deleted!");
-      if (partnerId) {
-        qc.invalidateQueries({ queryKey: ["myPartnerProducts", partnerId] });
+  useEffect(() => {
+    if (updateSuccess) {
+      toast.success("Listing Updated Successfully!");
+    }
+    if (updateError) {
+      let errorMsg = "Unknown error";
+      if (updateErrorDetails) {
+        if (
+          "message" in updateErrorDetails &&
+          typeof updateErrorDetails.message === "string"
+        ) {
+          errorMsg = updateErrorDetails.message;
+        } else if (
+          "data" in updateErrorDetails &&
+          typeof updateErrorDetails.data === "string"
+        ) {
+          errorMsg = updateErrorDetails.data;
+        }
       }
-      setSelectedId(null);
-      setForm({
-        id: "",
-        partner_id: "",
-        admin_product_id: "",
-        partner_price: 0,
-        is_active: true,
-      });
-    },
-    onError: (e) => toast.error(`Delete failed: ${e.message}`),
-  });
+      toast.error(`Failed to update listing: ${errorMsg}`);
+    }
+  }, [updateSuccess, updateError, updateErrorDetails]);
 
-  // In components/partner/PartnerProductManager.tsx
-  const addImageMut = useMutation<
-    PartnerProductImage,
-    Error,
-    | FormData
-    | { partner_product_id: string; image_url: string; is_thumbnail: boolean }
-  >({
-    mutationFn: (payload) => {
-      if (payload instanceof FormData) {
-        return fetch("/api/partner_product_images", {
-          method: "POST",
-          body: payload,
-        }).then(async (res) => {
-          // This 'then' block is crucial
-          if (!res.ok) {
-            // <--- THIS IS THE CHECK
-            const errorData = await res.json();
-            throw new Error(
-              errorData.error || `Server Error: ${res.status} ${res.statusText}`
-            );
-          }
-          return res.json(); // Only runs if res.ok is true
-        });
+  useEffect(() => {
+    if (deleteSuccess) {
+      toast.success("Listing Deleted!");
+      setSelectedProductId(null);
+      setFormState({ ...INITIAL_FORM, partner_id: partnerId || "" });
+    }
+    if (deleteError) {
+      let errorMsg = "Unknown error";
+      if (deleteErrorDetails) {
+        if (
+          "message" in deleteErrorDetails &&
+          typeof deleteErrorDetails.message === "string"
+        ) {
+          errorMsg = deleteErrorDetails.message;
+        } else if (
+          "data" in deleteErrorDetails &&
+          typeof deleteErrorDetails.data === "string"
+        ) {
+          errorMsg = deleteErrorDetails.data;
+        }
+      }
+      toast.error(`Failed to delete listing: ${errorMsg}`);
+    }
+  }, [deleteSuccess, deleteError, deleteErrorDetails, partnerId]);
+
+  // --- Handlers ---
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!partnerId) {
+      toast.error("Partner profile not approved or loading. Cannot submit.");
+      return;
+    }
+
+    const payload: FormState = {
+      ...formState,
+      partner_id: partnerId,
+    };
+
+    const cleanedPayload = clean(payload);
+
+    try {
+      if (selectedProductId) {
+        await updatePartnerProduct({
+          id: selectedProductId,
+          ...(cleanedPayload as Omit<UpdatePartnerProduct, "id">),
+        }).unwrap();
       } else {
-        return api.post(
-          "/partner_product_images",
-          payload as Record<string, unknown>
-        );
+        await createPartnerProduct(
+          cleanedPayload as CreatePartnerProduct
+        ).unwrap();
       }
-    },
-    onSuccess: () => {
-      toast.success("Image added!"); // This should ONLY run if the promise above resolves
-      // ...
-    },
-    onError: (e) => toast.error(`Failed to add image: ${e.message}`), // This should run if the promise above rejects
-  });
+    } catch (err: unknown) {
+      console.error("Submission failed:", err);
+    }
+  };
 
-  const delImageMut = useMutation<null, Error, string>({
-    mutationFn: (id) => api.delete(`/partner_product_images/${id}`),
-    onSuccess: () => {
-      toast.success("Image removed!");
-      if (selectedId) {
-        qc.invalidateQueries({
-          queryKey: ["partnerProductImages", selectedId],
-        });
+  const onReset = () => {
+    setSelectedProductId(null);
+    setFormState({ ...INITIAL_FORM, partner_id: partnerId || "" });
+  };
+
+  const onDelete = () => setConfirmOpen(true);
+
+  const confirmDelete = async () => {
+    if (selectedProductId) {
+      try {
+        await deletePartnerProduct(selectedProductId).unwrap();
+      } catch (err) {
+        console.error("Deletion failed:", err);
       }
-    },
-    onError: (e) => toast.error(`Remove image failed: ${e.message}`),
-  });
-
-  // Handlers
-  const handleSelectProduct = (p: PartnerProduct) => {
-    setSelectedId(p.id);
-    setForm({
-      id: p.id,
-      admin_product_id: p.admin_product_id,
-      partner_price: p.partner_price,
-      is_active: p.is_active,
-      partner_name: p.partner_name ?? "",
-      partner_description: p.partner_description ?? "",
-      partner_keywords: p.partner_keywords ?? [],
-    });
-    // Reset image inputs when selecting a new product
-    setNewImageUrl("");
-    setNewImageFile(null);
-    setIsNewImageThumbnail(false);
+    }
+    setConfirmOpen(false);
   };
 
-  const resetProductForm = () => {
-    setSelectedId(null);
-    setForm({
-      id: "",
-      partner_id: "",
-      admin_product_id: "",
-      partner_price: 0,
-      is_active: true,
-    });
-    // Reset image inputs when resetting product form
-    setNewImageUrl("");
-    setNewImageFile(null);
-    setIsNewImageThumbnail(false);
+  const onSelectProduct = (product: PartnerProduct) => {
+    setSelectedProductId(product.id);
   };
 
-  const confirmDeleteProduct = () => {
-    if (selectedId) deleteMut.mutate(selectedId);
-    setShowDeleteModal(false);
-  };
-
-  // In handleAddImage inside PartnerProductManager.tsx
-const handleAddImage = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  if (!selectedId) {
-    toast.error("Please select a product first to add images.");
-    return;
-  }
-
-  if (newImageFile) { // This condition should lead to the `fetch` path
-      const formData = new FormData();
-      formData.append("partner_product_id", selectedId);
-      formData.append("image", newImageFile);
-      formData.append("is_thumbnail", String(isNewImageThumbnail));
-      addImageMut.mutate(formData); // This calls the mutationFn with FormData
-  } else if (newImageUrl) { // This condition should lead to the `api.post` path
-      addImageMut.mutate({
-          partner_product_id: selectedId,
-          image_url: newImageUrl,
-          is_thumbnail: isNewImageThumbnail,
-      });
-  } else {
-      toast.error("No image data provided to add.");
-  }
-};
+  const productImagesData = selectedProductId ? selectedProductDetails : null;
 
   return (
     <div className="container mx-auto p-6 bg-secondary/30 min-h-screen">
@@ -265,59 +318,100 @@ const handleAddImage = async (e: React.FormEvent<HTMLFormElement>) => {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Product List Section */}
         <ProductListSection
           products={myProducts}
-          selectedId={selectedId}
+          selectedId={selectedProductId}
+          onSelect={onSelectProduct}
           isLoading={myProductsLoading}
           isError={myProductsError}
-          error={myProductsErrorObj ?? undefined}
-          onSelect={handleSelectProduct}
+          error={
+            myProductsFetchError
+              ? new Error(
+                  typeof myProductsFetchError === "object" &&
+                  "message" in myProductsFetchError
+                    ? String(
+                        (myProductsFetchError as { message?: string }).message
+                      )
+                    : typeof myProductsFetchError === "object" &&
+                      "data" in myProductsFetchError
+                    ? JSON.stringify(
+                        (myProductsFetchError as { data?: unknown }).data
+                      )
+                    : "Unknown error"
+                )
+              : undefined
+          }
         />
 
-        <div className="md:col-span-2 bg-white shadow rounded-lg p-6">
-          <ProductFormSection
-            selectedId={selectedId}
-            form={form}
-            setForm={setForm}
-            partnerId={partnerId}
-            adminProducts={adminProducts}
-            createMut={createMut}
-            updateMut={updateMut}
-            deleteMut={deleteMut}
-            resetForm={resetProductForm}
-            openDeleteModal={() => setShowDeleteModal(true)}
+        <div className="md:col-span-2 space-y-6">
+          <PartnerProductForm
+            formState={formState}
+            onFormChange={(newState) =>
+              setFormState((prev) => ({ ...prev, ...newState }))
+            }
+            onSubmit={onSubmit}
+            onReset={onReset}
+            onDelete={onDelete}
+            isSubmitting={createLoading || updateLoading}
+            isDeleting={deleteLoading}
+            selectedProductId={selectedProductId}
+            adminOptions={adminProducts}
           />
 
-          {selectedId && (
-            // Directly render PartnerProductImages here
+          {selectedProductId && productImagesData && (
             <PartnerProductImages
-              images={images}
-              isLoading={imagesLoading}
-              isError={imagesError}
-              error={imagesErrorObj ?? undefined}
-              newUrl={newImageUrl}
-              newFile={newImageFile}
-              isThumbnail={isNewImageThumbnail}
-              onUrlChange={setNewImageUrl}
-              onFileChange={setNewImageFile}
-              onThumbnailChange={setIsNewImageThumbnail}
-              onAdd={handleAddImage}
-              onDelete={delImageMut.mutate}
-              addLoading={addImageMut.isPending}
-              deleteLoading={delImageMut.isPending}
+              productId={selectedProductId}
+              images={productImagesData.product_image_urls || []}
+              thumbnail={productImagesData.thumbnail_url || null}
+              isLoading={selectedProductDetailsLoading}
+              isError={selectedProductDetailsError}
+              error={
+                selectedProductDetailsFetchError
+                  ? new Error(
+                      typeof selectedProductDetailsFetchError === "object" &&
+                      "message" in selectedProductDetailsFetchError
+                        ? String(
+                            (
+                              selectedProductDetailsFetchError as {
+                                message?: string;
+                              }
+                            ).message
+                          )
+                        : typeof selectedProductDetailsFetchError ===
+                            "object" &&
+                          "data" in selectedProductDetailsFetchError
+                        ? JSON.stringify(
+                            (
+                              selectedProductDetailsFetchError as {
+                                data?: unknown;
+                              }
+                            ).data
+                          )
+                        : "Unknown error"
+                    )
+                  : undefined
+              }
             />
           )}
         </div>
       </div>
 
+      {/* Confirmation Modal for deleting a product */}
       <ConfirmationModal
-        isOpen={showDeleteModal}
+        isOpen={confirmOpen}
         title="Confirm Delete"
         description="Are you sure you want to delete this listing and all its images?"
         confirmLabel="Delete"
         cancelLabel="Cancel"
-        onConfirm={confirmDeleteProduct}
-        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
+      {/* Full Page Loader */}
+      <FullPageLoader
+        isLoading={globalLoading}
+        message={globalLoadingMessage}
       />
     </div>
   );

@@ -7,10 +7,10 @@ import Button from "@/components/ui/Button";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Alert from "@/components/ui/Alert";
 import { api } from "@/lib/api-client";
-import { OrderWithDetails } from "@/types/db";
 import { useSession } from "next-auth/react";
 import OrderDetail from "@/components/Orders/OrderDetail";
 import { withAuth } from "@/components/Auth/withAuth";
+import { Order } from "@/redux/features/orders/ordersTypes";
 
 type OrderListViewMode = "admin" | "partner" | "customer";
 
@@ -45,7 +45,7 @@ const OrderList: React.FC<OrderListProps> = ({
     isLoading,
     isError,
     error,
-  } = useQuery<OrderWithDetails[], Error>({
+  } = useQuery<Order[], Error>({
     queryKey: [
       "orders",
       { customerId: filterByUserId, partnerId: filterByPartnerId, mode },
@@ -68,9 +68,9 @@ const OrderList: React.FC<OrderListProps> = ({
   });
 
   const updateOrderStatusMutation = useMutation<
-    OrderWithDetails,
+    Order,
     Error,
-    { id: string; status: OrderWithDetails["order_status"] }
+    { id: string; status: Order["order_status"] }
   >({
     mutationFn: ({ id, status }) => api.patch(`/orders/${id}`, { status }),
     onSuccess: (_, variables) => {
@@ -221,10 +221,10 @@ const OrderList: React.FC<OrderListProps> = ({
                     {order.id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {order.users?.name || order.users?.email || "N/A"}
+                    {order.currency || order.billing_address || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {order.partner_profiles?.company_name || "N/A"}
+                    {order.created_at || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {order.total_amount.toFixed(2)} {order.currency ?? "£"}

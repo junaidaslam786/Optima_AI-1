@@ -1,82 +1,75 @@
-// components/partner/PartnerProductImages.tsx
 "use client";
 
 import React, { useState, useEffect, FormEvent } from "react";
-import Image from "next/image";
+// import Image from "next/image"; // Removed next/image due to resolution issues
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import { toast } from "react-hot-toast"; // Keep toast for local validations
-import { PartnerProductImage } from "@/types/db";
+import { toast } from "react-hot-toast";
+import Image from "next/image";
+import { useAddPartnerProductImageMutation, useDeletePartnerProductImageMutation } from "@/redux/features/partnerProducts/partnerProductsApi";
 
 interface PartnerProductImagesProps {
-  images?: PartnerProductImage[];
+  productId: string;
+  images: string[];
+  thumbnail: string | null | undefined;
   isLoading: boolean;
   isError: boolean;
   error?: Error;
-  newUrl: string;
-  newFile: File | null;
-  isThumbnail: boolean;
-  addLoading: boolean;
-  deleteLoading: boolean;
-  onUrlChange: (url: string) => void;
-  onFileChange: (file: File | null) => void;
-  onThumbnailChange: (val: boolean) => void;
-  onAdd: (e: FormEvent<HTMLFormElement>) => void; // This will trigger the parent's mutation
-  onDelete: (id: string) => void;
 }
 
 const PartnerProductImages: React.FC<PartnerProductImagesProps> = ({
+  productId,
   images,
+  thumbnail,
   isLoading,
   isError,
   error,
-  newUrl,
-  newFile,
-  isThumbnail,
-  onUrlChange,
-  onFileChange,
-  onThumbnailChange,
-  onAdd, // We will call this directly after client-side validation
-  onDelete,
-  addLoading,
-  deleteLoading,
 }) => {
-  const [useFile, setUseFile] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState<string>("");
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [isThumbnail, setIsThumbnail] = useState<boolean>(false);
+  const [useFile, setUseFile] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selId, setSelId] = useState<string | null>(null);
+  const [selectedDeleteUrl, setSelectedDeleteUrl] = useState<string | null>(
+    null
+  );
+
+  const [addPartnerImageMutation, { isLoading: addLoading, error: addError }] =
+    useAddPartnerProductImageMutation();
+  const [
+    deletePartnerImageMutation,
+    { isLoading: deleteLoading, error: deleteError },
+  ] = useDeletePartnerProductImageMutation();
 
   useEffect(() => {
-    if (isError && error) toast.error(`Error loading images: ${error.message}`);
+    if (isError && error) {
+      toast.error(`Error loading images: ${error.message}`);
+    }
   }, [isError, error]);
 
-  const openConfirm = (id: string) => {
-    setSelId(id);
-    setModalOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (selId) {
-      toast.promise(
-        new Promise<void>((resolve, reject) => {
-          try {
-            onDelete(selId); // Calls parent's onDelete (which calls delImageMut.mutate)
-            resolve();
-          } catch (e) {
-            reject(e);
-          }
-        }),
-        {
-          loading: "Deleting image...",
-          success: "Image deleted!",
-          error: "Failed to delete.",
-        }
+  useEffect(() => {
+    if (addError) {
+      toast.error(
+        `Failed to add image: ${
+          addError instanceof Error ? addError.message : "Unknown error"
+        }`
       );
     }
-    setModalOpen(false);
-    setSelId(null);
+    if (deleteError) {
+      toast.error(
+        `Failed to delete image: ${
+          deleteError instanceof Error ? deleteError.message : "Unknown error"
+        }`
+      );
+    }
+  }, [addError, deleteError]);
+
+  const openConfirm = (urlToDelete: string) => {
+    setSelectedDeleteUrl(urlToDelete);
+    setModalOpen(true);
   };
 
   const validateImage = (
@@ -107,57 +100,119 @@ const PartnerProductImages: React.FC<PartnerProductImagesProps> = ({
     return { isValid: true };
   };
 
-  const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
+  const handleAddImage = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Client-side input validation
-    if (useFile && !newFile) {
-      toast.error("Please choose a file to upload.");
-      return;
-    }
-    if (!useFile && !newUrl) {
-      toast.error("Please provide an image URL.");
+    if (!productId) {
+      toast.error("Product ID is missing. Cannot add image.");
       return;
     }
 
-    // Process image for dimensions/aspect ratio before calling parent's onAdd
-    const imgSrc = useFile && newFile ? await readFileAsDataURL(newFile) : newUrl;
-
-    if (!imgSrc) {
-      toast.error("Failed to prepare image for validation.");
+    if (!newFile && !newImageUrl) {
+      toast.error("Please provide an image URL or upload a file.");
       return;
     }
 
-    const img = new window.Image();
-    img.onload = () => {
-      const { isValid, message } = validateImage(img.width, img.height);
-      if (isValid) {
-        onAdd(e); // <--- HERE: Call the parent's onAdd, which triggers the mutation
-                  // The parent's useMutation will handle its own success/error toasts
-      } else {
-        toast.error(message || "Image validation failed."); // Show validation error toast from here
+    let tempImageUrlForValidation: string | null = null;
+    const formDataToSend = new FormData();
+    formDataToSend.append("isThumbnail", String(isThumbnail));
+
+    if (useFile && newFile) {
+      formDataToSend.append("file", newFile);
+      tempImageUrlForValidation = URL.createObjectURL(newFile);
+    } else if (!useFile && newImageUrl) {
+      formDataToSend.append("imageUrl", newImageUrl);
+      tempImageUrlForValidation = newImageUrl;
+    }
+
+    if (!tempImageUrlForValidation) {
+      toast.error("No image data to validate.");
+      return;
+    }
+
+    const toastId = toast.loading("Validating image dimensions...");
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const { isValid, message } = validateImage(img.width, img.height);
+          if (isValid) {
+            resolve();
+          } else {
+            reject(new Error(message));
+          }
+        };
+        img.onerror = () => {
+          reject(
+            new Error("Failed to load image for validation. Check URL/file.")
+          );
+        };
+        img.src = tempImageUrlForValidation; // Correct placement for img.src assignment
+      });
+      toast.success("Image validated!", { id: toastId });
+
+      if (useFile && newFile && tempImageUrlForValidation) {
+        URL.revokeObjectURL(tempImageUrlForValidation);
       }
-    };
-    img.onerror = () => {
-      toast.error("Failed to load image for validation. Please check the URL or file.");
-    };
-    img.src = imgSrc;
+
+      await addPartnerImageMutation({
+        id: productId,
+        formData: formDataToSend,
+      }).unwrap();
+
+      toast.success("Image added successfully!");
+      setNewImageUrl("");
+      setNewFile(null);
+      setIsThumbnail(false);
+      setUseFile(false);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+          ? err
+          : "Unknown error";
+      toast.error(`Failed to add image: ${errorMessage}`, { id: toastId });
+      if (useFile && newFile && tempImageUrlForValidation) {
+        URL.revokeObjectURL(tempImageUrlForValidation);
+      }
+    }
   };
 
-  // Helper function to read file as Data URL
-  const readFileAsDataURL = (file: File): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        resolve(event.target?.result as string || null);
-      };
-      reader.onerror = () => {
-        resolve(null);
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteUrl || !productId) {
+      toast.error("Invalid image or product ID for deletion.");
+      setModalOpen(false);
+      setSelectedDeleteUrl(null);
+      return;
+    }
+
+    const updatedImages = images.filter((url) => url !== selectedDeleteUrl);
+    const updatedThumbnail = thumbnail === selectedDeleteUrl ? null : thumbnail;
+
+    try {
+      await deletePartnerImageMutation({
+        id: productId,
+        product_image_urls: updatedImages,
+        thumbnail_url: updatedThumbnail ?? undefined,
+      }).unwrap();
+      toast.success("Image deleted successfully!");
+    } catch (err: unknown) {
+      toast.error(
+        `Failed to delete image: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setModalOpen(false);
+      setSelectedDeleteUrl(null);
+    }
   };
 
+  const allDisplayImages = Array.from(
+    new Set([...(images || []), ...(thumbnail ? [thumbnail] : [])])
+  );
 
   return (
     <div className="mt-10 pt-6 border-t border-secondary">
@@ -167,22 +222,22 @@ const PartnerProductImages: React.FC<PartnerProductImagesProps> = ({
         <div className="flex justify-center py-4">
           <LoadingSpinner />
         </div>
-      ) : images && images.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          {images.map((img) => (
+      ) : allDisplayImages && allDisplayImages.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+          {allDisplayImages.map((imageUrl) => (
             <div
-              key={img.id}
+              key={imageUrl}
               className="relative group overflow-hidden rounded-lg shadow-sm border border-secondary"
             >
               <Image
-                src={img.image_url}
-                alt=""
-                width={150}
-                height={150}
+                src={imageUrl}
+                alt="Product Image"
+                width={100}
+                height={100}
                 unoptimized
-                className="w-full h-32 object-cover"
+                className="w-full object-cover"
               />
-              {img.is_thumbnail && (
+              {imageUrl === thumbnail && (
                 <span className="absolute top-1 left-1 bg-primary text-white text-xs px-2 py-0.5 rounded-full">
                   Thumbnail
                 </span>
@@ -192,8 +247,8 @@ const PartnerProductImages: React.FC<PartnerProductImagesProps> = ({
                 variant="danger"
                 size="sm"
                 className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => openConfirm(img.id)}
-                isLoading={deleteLoading}
+                onClick={() => openConfirm(imageUrl)}
+                isLoading={deleteLoading && selectedDeleteUrl === imageUrl}
               >
                 Delete
               </Button>
@@ -206,27 +261,34 @@ const PartnerProductImages: React.FC<PartnerProductImagesProps> = ({
         </p>
       )}
 
-      {/* URL vs File toggle */}
       <div className="mb-4">
         <label className="inline-flex items-center space-x-4">
           <input
             type="radio"
             checked={!useFile}
-            onChange={() => setUseFile(false)}
+            onChange={() => {
+              setNewFile(null);
+              setNewImageUrl("");
+              setUseFile(false);
+            }}
             className="form-radio text-primary"
           />
           <span className="text-primary">Use URL</span>
           <input
             type="radio"
             checked={useFile}
-            onChange={() => setUseFile(true)}
+            onChange={() => {
+              setNewFile(null);
+              setNewImageUrl("");
+              setUseFile(true);
+            }}
             className="form-radio text-primary"
           />
           <span className="text-primary">Upload File</span>
         </label>
       </div>
 
-      <form onSubmit={handleAdd} className="space-y-3">
+      <form onSubmit={handleAddImage} className="space-y-3">
         {useFile ? (
           <div>
             <label htmlFor="fileUpload" className="block text-primary mb-1">
@@ -237,25 +299,25 @@ const PartnerProductImages: React.FC<PartnerProductImagesProps> = ({
               type="file"
               accept="image/*"
               className="w-full text-secondary"
-              onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
-              required={true}
+              onChange={(e) => setNewFile(e.target.files?.[0] || null)}
+              required={useFile && !newFile}
             />
           </div>
         ) : (
           <Input
             id="newImageUrl"
             label="New Image URL"
-            value={newUrl}
-            onChange={(e) => onUrlChange(e.target.value)}
-            placeholder="https://example.com/img.jpg"
-            required={true}
+            value={newImageUrl}
+            onChange={(e) => setNewImageUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            required={!useFile && !newImageUrl}
           />
         )}
 
         <Checkbox
-          id="thumbnail"
+          id="isThumbnail"
           checked={isThumbnail}
-          onChange={(e) => onThumbnailChange(e.target.checked)}
+          onChange={(e) => setIsThumbnail(e.target.checked)}
           label="Set as Thumbnail"
         />
 

@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const orderItemsApi = createApi({
   reducerPath: "orderItemsApi",
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/orderItems` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/order_items` }),
   tagTypes: ["OrderItem"],
   endpoints: (builder) => ({
     getOrderItems: builder.query<OrderItem[], void>({

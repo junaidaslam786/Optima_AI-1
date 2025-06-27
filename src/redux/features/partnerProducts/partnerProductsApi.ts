@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
-  PartnerProduct,
   CreatePartnerProduct,
+  PartnerProduct,
   UpdatePartnerProduct,
 } from "./partnerProductsTypes";
 
@@ -9,7 +9,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const partnerProductsApi = createApi({
   reducerPath: "partnerProductsApi",
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/partnerProducts` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/partner_products` }),
   tagTypes: ["PartnerProduct"],
   endpoints: (builder) => ({
     getPartnerProducts: builder.query<PartnerProduct[], void>({
@@ -17,13 +17,26 @@ export const partnerProductsApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({
-                type: "PartnerProduct" as const,
-                id,
-              })),
-              "PartnerProduct",
-            ]
+            ...result.map(({ id }) => ({
+              type: "PartnerProduct" as const,
+              id,
+            })),
+            "PartnerProduct",
+          ]
           : ["PartnerProduct"],
+    }),
+    getPartnerProductsByPartnerId: builder.query<PartnerProduct[], string>({
+      query: (partnerId) => `?partner_id=${partnerId}`,
+      providesTags: (result) =>
+        result
+          ? [
+            ...result.map(({ id }) => ({
+              type: "PartnerProduct" as const,
+              id,
+            })),
+            { type: "PartnerProduct", id: "LIST" },
+          ]
+          : [{ type: "PartnerProduct", id: "LIST" }],
     }),
     getPartnerProductById: builder.query<PartnerProduct, string>({
       query: (id) => `/${id}`,
@@ -49,18 +62,47 @@ export const partnerProductsApi = createApi({
         method: "PATCH",
         body: patch,
       }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: "PartnerProduct", id },
-      ],
+      invalidatesTags: (
+        result,
+        error,
+        { id },
+      ) => [{ type: "PartnerProduct", id }],
     }),
-    deletePartnerProduct: builder.mutation<void, string>({
+    deletePartnerProduct: builder.mutation<null, string>({
       query: (id) => ({
         url: `/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: ["PartnerProduct"],
+    }),
+    addPartnerProductImage: builder.mutation<
+      PartnerProduct,
+      { id: string; formData: FormData }
+    >({
+      query: ({ id, formData }) => ({
+        url: `/${id}`,
+        method: "PATCH",
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { id }) => [
         { type: "PartnerProduct", id },
-        "PartnerProduct",
+      ],
+    }),
+    deletePartnerProductImage: builder.mutation<
+      PartnerProduct,
+      {
+        id: string;
+        product_image_urls: string[];
+        thumbnail_url?: string | null;
+      }
+    >({
+      query: ({ id, product_image_urls, thumbnail_url }) => ({
+        url: `/${id}`,
+        method: "PATCH",
+        body: { product_image_urls, thumbnail_url },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "PartnerProduct", id },
       ],
     }),
   }),
@@ -68,8 +110,11 @@ export const partnerProductsApi = createApi({
 
 export const {
   useGetPartnerProductsQuery,
+  useGetPartnerProductsByPartnerIdQuery,
   useGetPartnerProductByIdQuery,
   useCreatePartnerProductMutation,
   useUpdatePartnerProductMutation,
   useDeletePartnerProductMutation,
+  useAddPartnerProductImageMutation,
+  useDeletePartnerProductImageMutation,
 } = partnerProductsApi;

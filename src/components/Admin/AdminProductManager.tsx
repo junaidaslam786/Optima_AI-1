@@ -7,6 +7,7 @@ import AdminProductList from "@/components/Admin/AdminProductList";
 import AdminProductForm from "@/components/Admin/AdminProductForm";
 import AdminProductImages from "@/components/Admin/AdminProductImages";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { useSession } from "next-auth/react";
 import {
   AdminProduct,
@@ -15,11 +16,11 @@ import {
 } from "@/redux/features/adminProducts/adminProductsTypes";
 import {
   useGetAdminProductsQuery,
-  useGetAdminProductByIdQuery, // To fetch details of the selected product
+  useGetAdminProductByIdQuery,
   useCreateAdminProductMutation,
   useUpdateAdminProductMutation,
   useDeleteAdminProductMutation,
-} from "@/redux/features/adminProducts/adminProductsApi"; // Import RTK Query hooks
+} from "@/redux/features/adminProducts/adminProductsApi";
 
 type FormState = CreateAdminProduct & { id?: string; [key: string]: unknown };
 
@@ -111,6 +112,38 @@ const AdminProductManager: React.FC = () => {
       error: deleteErrorDetails,
     },
   ] = useDeleteAdminProductMutation();
+
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
+
+  useEffect(() => {
+    // Determine the most relevant loading state and message
+    if (productsLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Loading products...");
+    } else if (selectedProductDetailsLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Loading product details...");
+    } else if (createLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Creating product...");
+    } else if (updateLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Updating product...");
+    } else if (deleteLoading) {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Deleting product...");
+    } else {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  }, [
+    productsLoading,
+    selectedProductDetailsLoading,
+    createLoading,
+    updateLoading,
+    deleteLoading,
+  ]);
 
   useEffect(() => {
     if (selectedProductId && selectedProductDetails) {
@@ -339,6 +372,10 @@ const AdminProductManager: React.FC = () => {
         cancelLabel="Cancel"
         onConfirm={confirmDelete}
         onCancel={() => setConfirmOpen(false)}
+      />
+      <FullPageLoader
+        isLoading={globalLoading}
+        message={globalLoadingMessage}
       />
     </div>
   );

@@ -3,7 +3,7 @@
 
 import React from "react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { PartnerProduct } from "@/types/db";
+import { PartnerProduct } from "@/redux/features/partnerProducts/partnerProductsTypes";
 
 interface PartnerProductListProps {
   products?: PartnerProduct[];

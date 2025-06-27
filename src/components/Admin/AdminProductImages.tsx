@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/Input";
 import { Checkbox } from "../ui/Checkbox";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { toast } from "react-hot-toast";
-import { useAddImageMutation, useDeleteImageMutation } from "@/redux/features/adminProducts/adminProductsApi";
+import {
+  useAddImageMutation,
+  useDeleteImageMutation,
+} from "@/redux/features/adminProducts/adminProductsApi";
 
 interface AdminProductImagesProps {
   productId: string; // The ID of the product this component is for
@@ -32,10 +35,13 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
   const [isThumbnail, setIsThumbnail] = useState<boolean>(false);
   const [useFile, setUseFile] = useState(false); // State to toggle between URL and file upload
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedDeleteUrl, setSelectedDeleteUrl] = useState<string | null>(null);
+  const [selectedDeleteUrl, setSelectedDeleteUrl] = useState<string | null>(
+    null
+  );
 
   const [addImageMutation, { isLoading: addLoading }] = useAddImageMutation();
-  const [deleteImageMutation, { isLoading: deleteLoading }] = useDeleteImageMutation();
+  const [deleteImageMutation, { isLoading: deleteLoading }] =
+    useDeleteImageMutation();
 
   useEffect(() => {
     if (isError && error) {
@@ -134,12 +140,12 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
     }
 
     if (!tempImageUrlForValidation) {
-        toast.error("No image data to validate.");
-        return;
+      toast.error("No image data to validate.");
+      return;
     }
+    const toastId = toast.loading("Validating image dimensions...");
 
     try {
-      toast.loading("Validating image dimensions...", { id: "validating" });
       await new Promise<void>((resolve, reject) => {
         const img = new window.Image();
         img.onload = () => {
@@ -151,11 +157,13 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
           }
         };
         img.onerror = () => {
-          reject(new Error("Failed to load image for validation. Check URL/file."));
+          reject(
+            new Error("Failed to load image for validation. Check URL/file.")
+          );
         };
         img.src = tempImageUrlForValidation;
       });
-      toast.success("Image validated!", { id: "validating" });
+      toast.success("Image validated!", { id: toastId });
 
       if (useFile && newFile && tempImageUrlForValidation) {
         URL.revokeObjectURL(tempImageUrlForValidation);
@@ -178,18 +186,16 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
           : typeof err === "string"
           ? err
           : "Unknown error";
-      toast.error(`Failed to add image: ${errorMessage}`);
+      toast.error(`Failed to add image: ${errorMessage}`, { id: toastId });
       if (useFile && newFile && tempImageUrlForValidation) {
         URL.revokeObjectURL(tempImageUrlForValidation);
       }
     }
   };
 
-  const allDisplayImages = Array.from(new Set([
-    ...(images || []),
-    ...(thumbnail ? [thumbnail] : [])
-  ]));
-
+  const allDisplayImages = Array.from(
+    new Set([...(images || []), ...(thumbnail ? [thumbnail] : [])])
+  );
 
   return (
     <div className="mt-10 pt-6 border-t border-secondary">
@@ -200,19 +206,19 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
           <LoadingSpinner />
         </div>
       ) : allDisplayImages && allDisplayImages.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
           {allDisplayImages.map((imageUrl) => (
             <div
-              key={imageUrl} // Use URL as key, assuming unique
+              key={imageUrl}
               className="relative group overflow-hidden rounded-lg shadow-sm border border-secondary"
             >
               <Image
                 src={imageUrl}
                 alt="Product Image"
-                width={150}
-                height={150}
-                unoptimized // Use unoptimized for external URLs or if image optimization is not needed
-                className="w-full h-32 object-cover"
+                width={100}
+                height={100}
+                unoptimized
+                className="w-full object-cover"
               />
               {imageUrl === thumbnail && (
                 <span className="absolute top-1 left-1 bg-primary text-white text-xs px-2 py-0.5 rounded-full">
@@ -225,7 +231,7 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
                 size="sm"
                 className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => openConfirm(imageUrl)}
-                isLoading={deleteLoading && selectedDeleteUrl === imageUrl} // Only show loading for the specific image being deleted
+                isLoading={deleteLoading && selectedDeleteUrl === imageUrl}
               >
                 Delete
               </Button>
@@ -243,14 +249,22 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
           <input
             type="radio"
             checked={!useFile}
-            onChange={() => { setNewFile(null); setNewImageUrl(""); setUseFile(false); }} // Clear file/url when switching
+            onChange={() => {
+              setNewFile(null);
+              setNewImageUrl("");
+              setUseFile(false);
+            }} // Clear file/url when switching
             className="form-radio text-primary"
           />
           <span className="text-primary">Use URL</span>
           <input
             type="radio"
             checked={useFile}
-            onChange={() => { setNewFile(null); setNewImageUrl(""); setUseFile(true); }} // Clear file/url when switching
+            onChange={() => {
+              setNewFile(null);
+              setNewImageUrl("");
+              setUseFile(true);
+            }} // Clear file/url when switching
             className="form-radio text-primary"
           />
           <span className="text-primary">Upload File</span>

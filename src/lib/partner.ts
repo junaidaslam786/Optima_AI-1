@@ -1,5 +1,5 @@
+import { PartnerProfile } from "@/redux/features/partnerProfiles/partnerProfilesTypes";
 import { supabaseAdmin } from "./supabase-admin";
-import type { PartnerProfile } from "@/types/db";
 
 export async function getPartnerBySlug(
   slug: string

@@ -1,13 +1,11 @@
-// app/partner/orders/page.tsx
 "use client";
 
 import OrderList from "@/components/Orders/OrderList";
 import { useSession } from "next-auth/react";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
-import { PartnerProfile } from "@/types/db";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Button from "@/components/ui/Button";
+import { PartnerProfile } from "@/redux/features/partnerProfiles/partnerProfilesTypes";
+import { useGetPartnerProfileByUserIdQuery } from "@/redux/features/partnerProfiles/partnerProfilesApi";
 
 export default function PartnerOrdersPage() {
   const { data: session, status } = useSession();
@@ -15,15 +13,16 @@ export default function PartnerOrdersPage() {
   const sessionLoading = status === "loading";
 
   const {
-    data: partnerProfile,
+    data: partnerProfiles,
     isLoading: profileLoading,
     isError: profileError,
-  } = useQuery<PartnerProfile[], Error, PartnerProfile>({
-    queryKey: ["myPartnerProfile", user?.id],
-    queryFn: () => api.get(`/partner_profiles?user_id=${user?.id}`),
-    enabled: !!user?.id && !sessionLoading,
-    select: (data) => data?.[0] || null, // Assume one partner profile per user
+    error: profileFetchError,
+  } = useGetPartnerProfileByUserIdQuery(user?.id || "", {
+    skip: !user?.id || sessionLoading,
   });
+
+  const partnerProfile: PartnerProfile | null =
+    partnerProfiles && partnerProfiles.length > 0 ? partnerProfiles[0] : null;
 
   if (sessionLoading || profileLoading) {
     return (
@@ -34,7 +33,15 @@ export default function PartnerOrdersPage() {
     );
   }
 
-  if (profileError || !partnerProfile || partnerProfile.partner_status !== "approved") {
+  if (
+    profileError ||
+    !partnerProfile ||
+    partnerProfile.partner_status !== "approved"
+  ) {
+    if (profileError) {
+      console.error("Error fetching partner profile:", profileFetchError);
+    }
+
     return (
       <div className="text-center mt-10 p-6 bg-red-50 border border-red-200 text-red-800 rounded-lg mx-auto max-w-md">
         <p className="font-semibold">
@@ -57,4 +64,3 @@ export default function PartnerOrdersPage() {
     </div>
   );
 }
-

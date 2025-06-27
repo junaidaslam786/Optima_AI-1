@@ -31,7 +31,6 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
   isDeleting,
   selectedProductId,
 }) => {
-  // RTK Query hooks to fetch data for select options
   const { data: panels, isLoading: isLoadingPanels } = useGetPanelsQuery();
   const { data: categories, isLoading: isLoadingCategories } =
     useGetProductCategoriesQuery();

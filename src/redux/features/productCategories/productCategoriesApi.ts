@@ -9,7 +9,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const productCategoriesApi = createApi({
   reducerPath: "productCategoriesApi",
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/productCategories` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/product_categories` }),
   tagTypes: ["ProductCategory"],
   endpoints: (builder) => ({
     getProductCategories: builder.query<ProductCategory[], void>({
