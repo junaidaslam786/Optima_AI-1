@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Panel, CreatePanel, UpdatePanel } from "./panelsTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const panelsApi = createApi({
   reducerPath: "panelsApi",
@@ -33,7 +33,7 @@ export const panelsApi = createApi({
     updatePanel: builder.mutation<Panel, UpdatePanel>({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "Panel", id }],

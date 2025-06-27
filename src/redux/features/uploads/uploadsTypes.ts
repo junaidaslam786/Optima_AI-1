@@ -1,10 +1,10 @@
 export interface Upload {
-  id: string; // UUID
-  admin_user_id: string; // UUID, FK to users
-  client_user_id: string; // UUID, FK to users
+  id: string;
+  admin_user_id: string;
+  client_user_id: string;
   filename: string;
-  created_at: string; // TIMESTAMPTZ
-  updated_at: string; // TIMESTAMPTZ
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateUpload {

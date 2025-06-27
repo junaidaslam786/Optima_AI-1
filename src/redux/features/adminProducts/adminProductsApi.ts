@@ -1,16 +1,15 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
   AdminProduct,
-  AdminProductImages,
   CreateAdminProduct,
   UpdateAdminProduct,
 } from "./adminProductsTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const adminProductsApi = createApi({
   reducerPath: "adminProductsApi",
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/admin-products` }),
+  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/admin_products` }),
   tagTypes: ["AdminProduct"],
   endpoints: (builder) => ({
     getAdminProducts: builder.query<AdminProduct[], void>({
@@ -48,21 +47,21 @@ export const adminProductsApi = createApi({
         { type: "AdminProduct", id },
       ],
     }),
-    addImage: builder.mutation<AdminProduct, AdminProductImages>({
-      query: ({ id, product_image_urls, thumbnail_url }) => ({
+    addImage: builder.mutation<AdminProduct, { id: string; formData: FormData }>({
+      query: ({ id, formData }) => ({
         url: `/${id}`,
         method: "PATCH",
-        body: { product_image_urls, thumbnail_url },
+        body: formData,
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "AdminProduct", id },
       ],
     }),
-    deleteImage: builder.mutation<AdminProduct, AdminProductImages>({
+    deleteImage: builder.mutation<AdminProduct, { id: string; product_image_urls: string[]; thumbnail_url?: string | null }>({
       query: ({ id, product_image_urls, thumbnail_url }) => ({
         url: `/${id}`,
-        method: "PATCH",
-        body: { product_image_urls, thumbnail_url },
+        method: "PATCH", // This is also your `/api/admin-products/[id]` route
+        body: { product_image_urls, thumbnail_url }, // This sends a JSON body
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "AdminProduct", id },

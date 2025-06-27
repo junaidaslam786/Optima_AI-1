@@ -3,7 +3,7 @@
 
 import React from "react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { AdminProduct } from "@/types/db";
+import { AdminProduct } from "@/redux/features/adminProducts/adminProductsTypes";
 
 interface AdminProductListProps {
   products?: AdminProduct[];

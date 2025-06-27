@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { PdfReport, CreatePdfReport, UpdatePdfReport } from "./pdfReportsTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const pdfReportsApi = createApi({
   reducerPath: "pdfReportsApi",
@@ -33,7 +33,7 @@ export const pdfReportsApi = createApi({
     updatePdfReport: builder.mutation<PdfReport, UpdatePdfReport>({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "PdfReport", id }],

@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Marker, CreateMarker, UpdateMarker } from "./markersTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const markersApi = createApi({
   reducerPath: "markersApi",
@@ -33,7 +33,7 @@ export const markersApi = createApi({
     updateMarker: builder.mutation<Marker, UpdateMarker>({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "Marker", id }],

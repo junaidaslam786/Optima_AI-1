@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Upload, CreateUpload, UpdateUpload } from "./uploadsTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const uploadsApi = createApi({
   reducerPath: "uploadsApi",
@@ -33,7 +33,7 @@ export const uploadsApi = createApi({
     updateUpload: builder.mutation<Upload, UpdateUpload>({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "Upload", id }],

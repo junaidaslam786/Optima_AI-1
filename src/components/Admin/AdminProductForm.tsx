@@ -1,12 +1,14 @@
-// components/Admin/ProductForm.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Checkbox } from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
-import { CreateAdminProduct } from "@/types/db";
+import MultiSelect, { Option } from "@/components/ui/MultiSelect"; // Ensure MultiSelect is correctly imported
+import { useGetPanelsQuery } from "@/redux/features/panels/panelsApi";
+import { useGetMarkersQuery } from "@/redux/features/markers/markersApi";
+import { useGetProductCategoriesQuery } from "@/redux/features/productCategories/productCategoriesApi";
+import { CreateAdminProduct } from "@/redux/features/adminProducts/adminProductsTypes"; // Correct type import
 
 interface AdminProductFormProps {
   formState: CreateAdminProduct;
@@ -29,39 +31,20 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
   isDeleting,
   selectedProductId,
 }) => {
-  // helper to split/join comma lists
-  const listToString = (arr?: string[]) => arr?.join(", ") ?? "";
-  const stringToList = (str: string) =>
-    str
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s !== "");
+  // RTK Query hooks to fetch data for select options
+  const { data: panels, isLoading: isLoadingPanels } = useGetPanelsQuery();
+  const { data: categories, isLoading: isLoadingCategories } =
+    useGetProductCategoriesQuery();
+  const { data: markers, isLoading: isLoadingMarkers } = useGetMarkersQuery();
 
-  // Local states for textareas that handle arrays
-  const [sampleTypeText, setSampleTypeText] = useState(
-    listToString(formState.sample_type)
-  );
-  const [regulatoryApprovalsText, setRegulatoryApprovalsText] = useState(
-    listToString(formState.regulatory_approvals)
-  );
-  const [warningsAndPrecautionsText, setWarningsAndPrecautionsText] = useState(
-    listToString(formState.warnings_and_precautions)
-  );
-
-  // Synchronize local states with formState when formState changes
-  useEffect(() => {
-    setSampleTypeText(listToString(formState.sample_type));
-  }, [formState.sample_type]);
-
-  useEffect(() => {
-    setRegulatoryApprovalsText(listToString(formState.regulatory_approvals));
-  }, [formState.regulatory_approvals]);
-
-  useEffect(() => {
-    setWarningsAndPrecautionsText(
-      listToString(formState.warnings_and_precautions)
-    );
-  }, [formState.warnings_and_precautions]);
+  // Prepare options for MultiSelect components
+  const panelOptions: Option[] =
+    panels?.map((panel) => ({ value: panel.id, label: panel.name })) || [];
+  const categoryOptions: Option[] =
+    categories?.map((cat) => ({ value: cat.id, label: cat.name })) || [];
+  const markerOptions: Option[] =
+    markers?.map((marker) => ({ value: marker.id, label: marker.marker })) ||
+    [];
 
   return (
     <div className="bg-white shadow-xl rounded-lg p-6">
@@ -113,54 +96,26 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           onChange={(e) => onFormChange({ ...formState, sku: e.target.value })}
         />
 
-        <Input
-          id="category"
-          label="Category"
-          value={formState.category ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, category: e.target.value })
+        {/* Category IDs - MultiSelect */}
+        <MultiSelect
+          id="categoryIds"
+          label="Categories"
+          options={categoryOptions}
+          values={formState.category_ids ?? []} // Ensure default to empty array
+          onChange={(values) =>
+            onFormChange({ ...formState, category_ids: values })
           }
-        />
-
-        <Input
-          id="weight"
-          label="Weight"
-          type="number"
-          step="0.01"
-          value={formState.weight?.toString() ?? ""}
-          onChange={(e) =>
-            onFormChange({
-              ...formState,
-              weight: parseFloat(e.target.value) || undefined,
-            })
+          searchable
+          placeholder={
+            isLoadingCategories
+              ? "Loading categories..."
+              : "Select categories..."
           }
-        />
-
-        <Input
-          id="dimensions"
-          label="Dimensions"
-          placeholder="e.g., 10x5x2 cm"
-          value={formState.dimensions ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, dimensions: e.target.value })
-          }
-        />
-
-        <Input
-          id="stockQuantity"
-          label="Stock Quantity"
-          type="number"
-          value={formState.stock_quantity.toString()}
-          onChange={(e) =>
-            onFormChange({
-              ...formState,
-              stock_quantity: parseInt(e.target.value) || 0,
-            })
-          }
+          disabled={isLoadingCategories}
           required
         />
 
-        {/* Usage & testing */}
+        {/* Intended Use */}
         <Input
           id="intendedUse"
           label="Intended Use"
@@ -170,6 +125,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           }
         />
 
+        {/* Test Type */}
         <Input
           id="testType"
           label="Test Type"
@@ -179,110 +135,66 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
           }
         />
 
-        <Textarea
-          id="sampleType"
-          label="Sample Type(s)"
-          rows={2}
-          placeholder="Comma-separate multiple sample types"
-          value={sampleTypeText}
-          onChange={(e) => setSampleTypeText(e.target.value)}
-          onBlur={() =>
-            onFormChange({
-              ...formState,
-              sample_type: stringToList(sampleTypeText),
-            })
+        {/* Marker IDs - MultiSelect */}
+        <MultiSelect
+          id="markerIds"
+          label="Associated Markers"
+          options={markerOptions}
+          values={formState.marker_ids ?? []} // Ensure default to empty array
+          onChange={(values) =>
+            onFormChange({ ...formState, marker_ids: values })
           }
+          searchable
+          placeholder={
+            isLoadingMarkers ? "Loading markers..." : "Select markers..."
+          }
+          disabled={isLoadingMarkers}
         />
 
+        {/* Result Timeline */}
         <Input
-          id="resultsTime"
-          label="Results Time"
+          id="resultTimeline"
+          label="Result Timeline"
           placeholder="e.g., 24-48 hours"
-          value={formState.results_time ?? ""}
+          value={formState.result_timeline ?? ""}
           onChange={(e) =>
-            onFormChange({ ...formState, results_time: e.target.value })
+            onFormChange({ ...formState, result_timeline: e.target.value })
           }
         />
 
-        <Input
-          id="storageConditions"
-          label="Storage Conditions"
-          placeholder="e.g., Refrigerate at 4°C"
-          value={formState.storage_conditions ?? ""}
-          onChange={(e) =>
-            onFormChange({
-              ...formState,
-              storage_conditions: e.target.value,
-            })
-          }
-        />
-
+        {/* Additional Test Information */}
         <Textarea
-          id="regulatoryApprovals"
-          label="Regulatory Approvals"
-          rows={2}
-          placeholder="Comma-separate approvals"
-          value={regulatoryApprovalsText}
-          onChange={(e) => setRegulatoryApprovalsText(e.target.value)}
-          onBlur={() =>
-            onFormChange({
-              ...formState,
-              regulatory_approvals: stringToList(regulatoryApprovalsText),
-            })
-          }
-        />
-
-        <Textarea
-          id="kitContents"
-          label="Kit Contents Summary"
+          id="additionalTestInformation"
+          label="Additional Test Information"
           rows={3}
-          value={formState.kit_contents_summary ?? ""}
+          value={formState.additional_test_information ?? ""}
           onChange={(e) =>
             onFormChange({
               ...formState,
-              kit_contents_summary: e.target.value,
+              additional_test_information: e.target.value,
             })
           }
         />
 
-        <Input
-          id="userManualUrl"
-          label="User Manual URL"
-          type="url"
-          value={formState.user_manual_url ?? ""}
-          onChange={(e) =>
-            onFormChange({ ...formState, user_manual_url: e.target.value })
+        {/* Corresponding Panels - MultiSelect */}
+        <MultiSelect
+          id="correspondingPanels"
+          label="Corresponding Panels"
+          options={panelOptions}
+          values={formState.corresponding_panels ?? []} // Ensure default to empty array
+          onChange={(values) =>
+            onFormChange({ ...formState, corresponding_panels: values })
           }
+          searchable
+          placeholder={
+            isLoadingPanels
+              ? "Loading panels..."
+              : "Select corresponding panels..."
+          }
+          disabled={isLoadingPanels}
         />
 
-        <Textarea
-          id="warningsAndPrecautions"
-          label="Warnings & Precautions"
-          rows={2}
-          placeholder="Comma-separate warnings"
-          value={warningsAndPrecautionsText}
-          onChange={(e) => setWarningsAndPrecautionsText(e.target.value)}
-          onBlur={() =>
-            onFormChange({
-              ...formState,
-              warnings_and_precautions: stringToList(
-                warningsAndPrecautionsText
-              ),
-            })
-          }
-        />
-
-        {/* Active toggle */}
-        <Checkbox
-          id="isActive"
-          checked={formState.is_active}
-          onChange={(e) =>
-            onFormChange({ ...formState, is_active: e.target.checked })
-          }
-          label="Is Active"
-        />
-
-        {/* Actions */}
+        {/* Buttons */}
         <div className="flex space-x-3 mt-6">
           <Button type="submit" isLoading={isSubmitting}>
             {selectedProductId ? "Update Product" : "Create Product"}

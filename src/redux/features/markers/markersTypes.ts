@@ -1,12 +1,12 @@
 export interface Marker {
-  id: string; // UUID
-  panel_id: string; // UUID, FK to panels
+  id: string;
+  panel_id: string;
   marker: string;
   unit: string;
-  normal_low?: number; // NUMERIC
-  normal_high?: number; // NUMERIC
-  created_at: string; // TIMESTAMPTZ
-  updated_at: string; // TIMESTAMPTZ
+  normal_low?: number;
+  normal_high?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateMarker {

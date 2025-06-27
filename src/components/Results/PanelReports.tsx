@@ -59,11 +59,11 @@ export function PanelReports({
         throw new Error(data.error || "Failed to generate report");
       }
 
-      toast.success("Report saved successfully!"); // Success toast
+      toast.success("Report saved successfully!")
       setIsGenerating(false);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      toast.error(`Error: ${errorMessage}`); // Error toast
+      toast.error(`Error: ${errorMessage}`);
       setIsGenerating(false);
     }
   }

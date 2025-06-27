@@ -9,13 +9,14 @@ import { withAuth } from "@/components/Auth/withAuth";
 
 interface Marker {
   id: string;
-  panel_id: string;
   value: number;
   normal_low: number | null;
   normal_high: number | null;
   unit: string;
   marker: string;
   status: string;
+  panel_id: string;
+  panel_name: string;
 }
 
 interface ResultsDisplayProps {
@@ -27,6 +28,7 @@ interface ResultsDisplayProps {
   markers: Marker[];
   panelInsights: string;
   insightsErrorOccurred: boolean;
+  csvfileId: string;
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
@@ -37,11 +39,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   panelName,
   markers,
   panelInsights,
-  insightsErrorOccurred,
+  insightsErrorOccurred
 }: ResultsDisplayProps) => {
   return (
     <div className="w-full">
-      <h1 className="text-3xl font-bold text-primary py-8">
+      <h1 className="text-3xl font-bold text-primary pb-8">
         {panelName} Results
       </h1>
       <div className="w-full mx-auto px-8 flex flex-row gap-8">

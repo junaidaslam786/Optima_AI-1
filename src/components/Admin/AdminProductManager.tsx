@@ -1,71 +1,64 @@
-// components/Admin/AdminProductManager.tsx
 "use client";
 
 import React, { useState, useEffect, FormEvent } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
 import AdminProductList from "@/components/Admin/AdminProductList";
 import AdminProductForm from "@/components/Admin/AdminProductForm";
 import AdminProductImages from "@/components/Admin/AdminProductImages";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { useSession } from "next-auth/react";
 import {
   AdminProduct,
-  AdminProductImage,
   CreateAdminProduct,
-} from "@/types/db";
-import { useSession } from "next-auth/react";
+  UpdateAdminProduct,
+} from "@/redux/features/adminProducts/adminProductsTypes";
+import {
+  useGetAdminProductsQuery,
+  useGetAdminProductByIdQuery, // To fetch details of the selected product
+  useCreateAdminProductMutation,
+  useUpdateAdminProductMutation,
+  useDeleteAdminProductMutation,
+} from "@/redux/features/adminProducts/adminProductsApi"; // Import RTK Query hooks
 
-type FormState = CreateAdminProduct & { id?: string };
+type FormState = CreateAdminProduct & { id?: string; [key: string]: unknown };
 
-// Initial empty form
 const INITIAL_FORM: FormState = {
   name: "",
-  description: "",
+  description: undefined,
   base_price: 0,
-  sku: "",
-  category: "",
-  weight: 0,
-  dimensions: "",
-  stock_quantity: 0,
-  is_active: true,
-  admin_user_id: "",
-  intended_use: "",
-  test_type: "",
-  sample_type: [],
-  results_time: "",
-  storage_conditions: "",
-  regulatory_approvals: [],
-  kit_contents_summary: "",
-  user_manual_url: "",
-  warnings_and_precautions: [],
+  sku: undefined,
+  category_ids: [],
+  intended_use: undefined,
+  test_type: undefined,
+  marker_ids: [],
+  result_timeline: undefined,
+  additional_test_information: undefined,
+  corresponding_panels: [],
+  admin_user_id: undefined,
 };
 
-// Helper to strip empty or undefined fields
-function clean(obj: Record<string, unknown>) {
-  const out: Record<string, unknown> = {};
-  Object.entries(obj).forEach(([k, v]) => {
-    if (
-      v !== undefined &&
-      v !== null &&
-      !(typeof v === "string" && v.trim() === "") &&
-      !(Array.isArray(v) && v.length === 0)
-    ) {
-      out[k] = v;
+function clean<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const out: Partial<T> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (
+        value !== undefined &&
+        value !== null &&
+        !(typeof value === "string" && value.trim() === "") &&
+        !(Array.isArray(value) && value.length === 0)
+      ) {
+        out[key] = value;
+      }
     }
-  });
+  }
   return out;
 }
 
 const AdminProductManager: React.FC = () => {
-  const qc = useQueryClient();
-
   // --- state ---
   const [formState, setFormState] = useState<FormState>(INITIAL_FORM);
-  const [newImgUrl, setNewImgUrl] = useState("");
-  const [newFile, setNewFile] = useState<File | null>(null);
-  const [thumbnail, setThumbnail] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     null
@@ -73,155 +66,188 @@ const AdminProductManager: React.FC = () => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  // --- queries ---
-  const productsQ = useQuery<AdminProduct[], Error>({
-    queryKey: ["adminProducts"],
-    queryFn: () => api.get("/admin_products"),
+  const {
+    data: products,
+    isLoading: productsLoading,
+    isError: productsError,
+    error: productsFetchError,
+  } = useGetAdminProductsQuery();
+
+  const {
+    data: selectedProductDetails,
+    isLoading: selectedProductDetailsLoading,
+    isError: selectedProductDetailsError,
+    error: selectedProductDetailsFetchError,
+  } = useGetAdminProductByIdQuery(selectedProductId || "", {
+    skip: !selectedProductId,
   });
 
-  const imagesQ = useQuery<AdminProductImage[], Error>({
-    queryKey: ["adminProductImages", selectedProductId],
-    queryFn: () =>
-      api.get(`/admin_product_images?product_id=${selectedProductId}`),
-    enabled: Boolean(selectedProductId),
-  });
+  const [
+    createAdminProduct,
+    {
+      isLoading: createLoading,
+      isSuccess: createSuccess,
+      isError: createError,
+      error: createErrorDetails,
+    },
+  ] = useCreateAdminProductMutation();
 
-  // --- mutations ---
-  const createM = useMutation<AdminProduct, Error, FormState>({
-    mutationFn: (newP) => {
-      const { ...rest } = newP;
-      return api.post("/admin_products", clean(rest));
+  const [
+    updateAdminProduct,
+    {
+      isLoading: updateLoading,
+      isSuccess: updateSuccess,
+      isError: updateError,
+      error: updateErrorDetails,
     },
-    onSuccess: () => {
-      toast.success("Product Created Successfully!");
-      qc.invalidateQueries({ queryKey: ["adminProducts"] });
-      setSelectedProductId(null);
-      setFormState(INITIAL_FORM);
-      window.location.reload();
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  ] = useUpdateAdminProductMutation();
 
-  const updateM = useMutation<AdminProduct, Error, FormState>({
-    mutationFn: (upd) => {
-      if (!upd.id) throw new Error("Missing ID");
-      const { id, ...rest } = upd;
-      return api.patch(`/admin_products/${id}`, clean(rest));
+  const [
+    deleteAdminProduct,
+    {
+      isLoading: deleteLoading,
+      isSuccess: deleteSuccess,
+      isError: deleteError,
+      error: deleteErrorDetails,
     },
-    onSuccess: () => {
-      toast.success("Product Updated Successfully!");
-      qc.invalidateQueries({ queryKey: ["adminProducts"] });
-      window.location.reload();
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  ] = useDeleteAdminProductMutation();
 
-  const deleteM = useMutation<void, Error, string>({
-    mutationFn: (id) => api.delete(`/admin_products/${id}`),
-    onSuccess: () => {
-      toast.success("Deleted!");
-      qc.invalidateQueries({ queryKey: ["adminProducts"] });
-      setSelectedProductId(null);
-      setFormState(INITIAL_FORM);
-      window.location.reload();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const addImgM = useMutation<
-    AdminProductImage,
-    Error,
-    FormData | Record<string, unknown>
-  >({
-    mutationFn: (payload) =>
-      payload instanceof FormData
-        ? fetch("/api/admin_product_images", {
-            method: "POST",
-            body: payload,
-          }).then((r) => {
-            if (!r.ok) throw new Error("Upload failed");
-            return r.json();
-          })
-        : api.post("/admin_product_images", payload),
-    onSuccess: () => {
-      toast.success("Image added!");
-      qc.invalidateQueries({
-        queryKey: ["adminProductImages", selectedProductId],
-      });
-      setNewImgUrl("");
-      setNewFile(null);
-      setThumbnail(false);
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const deleteImgM = useMutation<void, Error, string>({
-    mutationFn: (id) => api.delete(`/admin_product_images/${id}`),
-    onSuccess: () => {
-      toast.success("Image removed!");
-      qc.invalidateQueries({
-        queryKey: ["adminProductImages", selectedProductId],
-      });
-      window.location.reload();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  // --- sync form when selection changes ---
   useEffect(() => {
-    if (selectedProductId && productsQ.data) {
-      const p = productsQ.data.find((x) => x.id === selectedProductId);
-      if (p) {
-        setFormState({
-          ...p,
-          sample_type: p.sample_type || [],
-          regulatory_approvals: p.regulatory_approvals || [],
-          warnings_and_precautions: p.warnings_and_precautions || [],
-        });
-      }
-    } else {
+    if (selectedProductId && selectedProductDetails) {
+      setFormState({
+        id: selectedProductDetails.id,
+        name: selectedProductDetails.name,
+        description: selectedProductDetails.description ?? undefined,
+        base_price: selectedProductDetails.base_price,
+        sku: selectedProductDetails.sku ?? undefined,
+        category_ids: selectedProductDetails.category_ids || [],
+        intended_use: selectedProductDetails.intended_use ?? undefined,
+        test_type: selectedProductDetails.test_type ?? undefined,
+        marker_ids: selectedProductDetails.marker_ids || [],
+        result_timeline: selectedProductDetails.result_timeline ?? undefined,
+        additional_test_information:
+          selectedProductDetails.additional_test_information ?? undefined,
+        corresponding_panels: selectedProductDetails.corresponding_panels || [],
+        admin_user_id: selectedProductDetails.admin_user_id ?? undefined,
+      });
+    } else if (!selectedProductId) {
       setFormState(INITIAL_FORM);
     }
-  }, [selectedProductId, productsQ.data]);
+  }, [selectedProductId, selectedProductDetails]);
 
-  // --- handlers ---
-  const onSubmit = (e: FormEvent) => {
+  useEffect(() => {
+    if (createSuccess) {
+      toast.success("Product Created Successfully!");
+      setSelectedProductId(null);
+      setFormState(INITIAL_FORM);
+    }
+    if (createError) {
+      toast.error(
+        `Failed to create product: ${
+          createErrorDetails &&
+          "message" in createErrorDetails &&
+          typeof createErrorDetails.message === "string"
+            ? createErrorDetails.message
+            : createErrorDetails &&
+              "data" in createErrorDetails &&
+              typeof createErrorDetails.data === "string"
+            ? createErrorDetails.data
+            : "Unknown error"
+        }`
+      );
+    }
+  }, [createSuccess, createError, createErrorDetails]);
+
+  useEffect(() => {
+    if (updateSuccess) {
+      toast.success("Product Updated Successfully!");
+    }
+    if (updateError) {
+      let errorMsg = "Unknown error";
+      if (updateErrorDetails) {
+        if (
+          "message" in updateErrorDetails &&
+          typeof updateErrorDetails.message === "string"
+        ) {
+          errorMsg = updateErrorDetails.message;
+        } else if (
+          "data" in updateErrorDetails &&
+          typeof updateErrorDetails.data === "string"
+        ) {
+          errorMsg = updateErrorDetails.data;
+        }
+      }
+      toast.error(`Failed to update product: ${errorMsg}`);
+    }
+  }, [updateSuccess, updateError, updateErrorDetails]);
+
+  useEffect(() => {
+    if (deleteSuccess) {
+      toast.success("Deleted!");
+      setSelectedProductId(null);
+      setFormState(INITIAL_FORM);
+    }
+    if (deleteError) {
+      let errorMsg = "Unknown error";
+      if (deleteErrorDetails) {
+        if (
+          "message" in deleteErrorDetails &&
+          typeof deleteErrorDetails.message === "string"
+        ) {
+          errorMsg = deleteErrorDetails.message;
+        } else if (
+          "data" in deleteErrorDetails &&
+          typeof deleteErrorDetails.data === "string"
+        ) {
+          errorMsg = deleteErrorDetails.data;
+        }
+      }
+      toast.error(`Failed to delete product: ${errorMsg}`);
+    }
+  }, [deleteSuccess, deleteError, deleteErrorDetails]);
+
+  // --- Handlers ---
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const payload: FormState = {
       ...formState,
       admin_user_id: userId,
     };
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    selectedProductId ? updateM.mutate(payload) : createM.mutate(payload);
-  };
 
-  const onReset = () => setSelectedProductId(null);
-  const onDelete = () => setConfirmOpen(true);
-  const confirmDelete = () => {
-    if (selectedProductId) deleteM.mutate(selectedProductId);
-    setConfirmOpen(false);
-  };
+    const cleanedPayload = clean(payload);
 
-  const onAddImage = (e: FormEvent) => {
-    e.preventDefault();
-    if (!selectedProductId) return;
-
-    if (newFile) {
-      const fd = new FormData();
-      fd.append("product_id", selectedProductId);
-      fd.append("file", newFile);
-      fd.append("is_thumbnail", JSON.stringify(thumbnail));
-      addImgM.mutate(fd);
-    } else {
-      addImgM.mutate({
-        product_id: selectedProductId,
-        image_url: newImgUrl,
-        is_thumbnail: thumbnail,
-      });
+    try {
+      if (selectedProductId) {
+        await updateAdminProduct({
+          id: selectedProductId,
+          ...(cleanedPayload as Omit<UpdateAdminProduct, "id">),
+        }).unwrap();
+      } else {
+        await createAdminProduct(cleanedPayload as CreateAdminProduct).unwrap();
+      }
+    } catch (err: unknown) {
+      console.error("Submission failed:", err);
     }
   };
 
+  const onReset = () => {
+    setSelectedProductId(null);
+  };
+
+  const onDelete = () => setConfirmOpen(true);
+
+  const confirmDelete = async () => {
+    if (selectedProductId) {
+      try {
+        await deleteAdminProduct(selectedProductId).unwrap();
+      } catch {}
+    }
+    setConfirmOpen(false);
+  };
+
   const onSelect = (p: AdminProduct) => setSelectedProductId(p.id);
+
+  const productImagesData = selectedProductId ? selectedProductDetails : null;
 
   return (
     <div className="container mx-auto p-6 bg-secondary/30">
@@ -231,41 +257,76 @@ const AdminProductManager: React.FC = () => {
       <div className="grid md:grid-cols-3 gap-8">
         <div className="bg-white p-6 rounded shadow max-h-[80vh] overflow-auto">
           <AdminProductList
-            products={productsQ.data}
+            products={products}
             selectedProductId={selectedProductId}
             onSelect={onSelect}
-            isLoading={productsQ.isLoading}
-            isError={productsQ.isError}
-            error={productsQ.error ?? undefined}
+            isLoading={productsLoading}
+            isError={productsError}
+            error={
+              productsFetchError
+                ? new Error(
+                    typeof productsFetchError === "object" &&
+                    "message" in productsFetchError
+                      ? String(
+                          (productsFetchError as { message?: string }).message
+                        )
+                      : typeof productsFetchError === "object" &&
+                        "data" in productsFetchError
+                      ? JSON.stringify(
+                          (productsFetchError as { data?: unknown }).data
+                        )
+                      : "Unknown error"
+                  )
+                : undefined
+            }
           />
         </div>
         <div className="md:col-span-2 space-y-6">
           <AdminProductForm
             formState={formState}
-            onFormChange={setFormState}
+            onFormChange={(newState) =>
+              setFormState((prev) => ({ ...prev, ...newState }))
+            }
             onSubmit={onSubmit}
             onReset={onReset}
             onDelete={onDelete}
-            isSubmitting={createM.isPending || updateM.isPending}
-            isDeleting={deleteM.isPending}
+            isSubmitting={createLoading || updateLoading}
+            isDeleting={deleteLoading}
             selectedProductId={selectedProductId}
           />
-          {selectedProductId && (
+          {selectedProductId && productImagesData && (
             <AdminProductImages
-              images={imagesQ.data}
-              isLoading={imagesQ.isLoading}
-              isError={imagesQ.isError}
-              error={imagesQ.error ?? undefined}
-              newImageUrl={newImgUrl}
-              newFile={newFile}
-              isThumbnail={thumbnail}
-              onImageUrlChange={setNewImgUrl}
-              onFileChange={setNewFile}
-              onThumbnailChange={setThumbnail}
-              onAddImage={onAddImage}
-              onDeleteImage={(id) => deleteImgM.mutate(id)}
-              addLoading={addImgM.isPending}
-              deleteLoading={deleteImgM.isPending}
+              productId={selectedProductId}
+              images={productImagesData.product_image_urls || []}
+              thumbnail={productImagesData.thumbnail_url || null}
+              isLoading={selectedProductDetailsLoading}
+              isError={selectedProductDetailsError}
+              error={
+                selectedProductDetailsFetchError
+                  ? new Error(
+                      typeof selectedProductDetailsFetchError === "object" &&
+                      "message" in selectedProductDetailsFetchError
+                        ? String(
+                            (
+                              selectedProductDetailsFetchError as {
+                                message?: string;
+                              }
+                            ).message
+                          )
+                        : typeof selectedProductDetailsFetchError ===
+                            "object" &&
+                          "data" in selectedProductDetailsFetchError
+                        ? JSON.stringify(
+                            (
+                              selectedProductDetailsFetchError as {
+                                data?: unknown;
+                              }
+                            ).data
+                          )
+                        : "Unknown error"
+                    )
+                  : undefined
+              }
             />
           )}
         </div>

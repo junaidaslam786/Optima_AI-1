@@ -1,9 +1,9 @@
 export interface ProductCategory {
-  id: string; // UUID
+  id: string;
   name: string;
   description?: string;
-  created_at: string; // TIMESTAMPTZ
-  updated_at: string; // TIMESTAMPTZ
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateProductCategory {

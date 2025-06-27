@@ -4,9 +4,9 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await request.json();
+    const { userId, csvfileId } = await request.json();
 
-    if (!userId) {
+    if (!userId || !csvfileId) {
       return NextResponse.json(
         { error: "User ID is required" },
         { status: 400 }
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     const { data: insightRaw, error: iErr } =
       await supabaseAdmin.functions.invoke("generate-insights", {
-        body: { user_id: userId },
+        body: { user_id: userId, csvfile_id: csvfileId },
       });
 
     if (iErr) {

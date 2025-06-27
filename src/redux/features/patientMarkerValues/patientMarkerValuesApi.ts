@@ -5,7 +5,7 @@ import {
   UpdatePatientMarkerValue,
 } from "./patientMarkerValuesTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const patientMarkerValuesApi = createApi({
   reducerPath: "patientMarkerValuesApi",
@@ -46,7 +46,7 @@ export const patientMarkerValuesApi = createApi({
     >({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [

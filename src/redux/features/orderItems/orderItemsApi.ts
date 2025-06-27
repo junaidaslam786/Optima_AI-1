@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { OrderItem, CreateOrderItem, UpdateOrderItem } from "./orderItemsTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const orderItemsApi = createApi({
   reducerPath: "orderItemsApi",
@@ -33,7 +33,7 @@ export const orderItemsApi = createApi({
     updateOrderItem: builder.mutation<OrderItem, UpdateOrderItem>({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "OrderItem", id }],

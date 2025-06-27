@@ -11,9 +11,7 @@ import { withAuth } from "@/components/Auth/withAuth";
 const ReportsPage = () => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
-
   const { data: reports, error } = useReports(userId ?? "");
-
   const past = useMemo(() => {
     return (reports || []).map(
       (r: { generated_at: string; report_url: string }) => ({
@@ -42,7 +40,7 @@ const ReportsPage = () => {
   }
 
   return (
-    <div className="w-full min-h-screen px-8 pb-12">
+    <div className="w-full min-h-screen bg-primary/10 p-12">
       <h1 className="text-3xl font-bold text-primary mb-6">Reports</h1>
       <HealthScoreChart />
       <PastReportsList reports={past} />

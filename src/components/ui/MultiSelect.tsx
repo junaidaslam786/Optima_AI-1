@@ -1,4 +1,3 @@
-// components/ui/Select.tsx
 import React, { useState, useRef, useEffect } from "react";
 
 export interface Option {
@@ -6,12 +5,12 @@ export interface Option {
   label: string;
 }
 
-interface SelectProps {
+interface MultiSelectProps {
   id: string;
   label: string;
   options: Option[];
-  value: string;
-  onChange: (value: string) => void;
+  values: string[]; // Changed to an array of values
+  onChange: (values: string[]) => void; // Changed to return array of values
   searchable?: boolean;
   placeholder?: string;
   error?: string;
@@ -20,13 +19,13 @@ interface SelectProps {
   required?: boolean;
 }
 
-const Select: React.FC<SelectProps> = ({
+const MultiSelect: React.FC<MultiSelectProps> = ({
   id,
   label,
   options,
-  value,
+  values,
   onChange,
-  searchable = false,
+  searchable = true,
   placeholder = "Select…",
   error,
   className = "",
@@ -37,10 +36,7 @@ const Select: React.FC<SelectProps> = ({
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
-  // find currently selected option
-  const selected = options.find((o) => o.value === value);
-
-  // filter options by the typed query
+  // Filter options by the typed query
   const filtered = query
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
     : options;
@@ -56,10 +52,38 @@ const Select: React.FC<SelectProps> = ({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
+  // Handle selection/deselection of an option
+  const handleOptionClick = (optionValue: string) => {
+    let newValues;
+    if (values.includes(optionValue)) {
+      // Deselect
+      newValues = values.filter((v) => v !== optionValue);
+    } else {
+      // Select
+      newValues = [...values, optionValue];
+    }
+    onChange(newValues);
+    // Keep dropdown open for multi-select, unless it's not searchable
+    if (!searchable) {
+      setOpen(false);
+    }
+    setQuery(""); // Clear query after selection
+  };
+
+  // Display selected labels
+  const selectedLabels = options
+    .filter((o) => values.includes(o.value))
+    .map((o) => o.label);
+
   return (
     <div className="relative" ref={ref}>
-      {/* hidden input to enforce required in native form validation */}
-      {required && <input type="hidden" name={id} value={value} required />}
+      {/* Hidden inputs for each selected value to enforce required in native form validation */}
+      {required && values.length === 0 && (
+        <input type="hidden" name={id} value="" required />
+      )}
+      {values.map((val) => (
+        <input key={val} type="hidden" name={`${id}[]`} value={val} />
+      ))}
 
       <label htmlFor={id} className="block text-primary mb-1">
         {label}
@@ -72,7 +96,7 @@ const Select: React.FC<SelectProps> = ({
         aria-disabled={disabled}
         aria-expanded={open}
         className={
-          `w-full px-4 py-2 border rounded-lg flex items-center justify-between ` +
+          `w-full px-4 py-2 border rounded-lg flex flex-wrap items-center justify-between gap-2 ` +
           (error ? "border-red-500 " : "border-primary ") +
           (disabled ? "opacity-50 cursor-not-allowed " : "cursor-pointer ") +
           className
@@ -83,10 +107,35 @@ const Select: React.FC<SelectProps> = ({
           setQuery("");
         }}
       >
-        <span className={selected ? "" : "text-gray-400"}>
-          {selected ? selected.label : placeholder}
-        </span>
-        <svg className="w-4 h-4 text-current" viewBox="0 0 20 20" fill="none">
+        {selectedLabels.length > 0 ? (
+          selectedLabels.map((labelTxt) => (
+            <span
+              key={labelTxt}
+              className="inline-flex items-center px-2 py-1 rounded-full bg-primary text-white text-sm"
+            >
+              {labelTxt}
+              <button
+                type="button"
+                className="ml-1 -mr-0.5 h-4 w-4 flex items-center justify-center rounded-full hover:bg-white hover:text-primary transition"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent opening/closing the dropdown
+                  handleOptionClick(
+                    options.find((o) => o.label === labelTxt)?.value || ""
+                  );
+                }}
+              >
+                &times;
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-400">{placeholder}</span>
+        )}
+        <svg
+          className="w-4 h-4 text-current ml-auto"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
           <path
             d="M6 8l4 4 4-4"
             stroke="currentColor"
@@ -112,11 +161,12 @@ const Select: React.FC<SelectProps> = ({
             {filtered.map((opt) => (
               <li
                 key={opt.value}
-                className="px-4 py-2 hover:bg-primary hover:text-white cursor-pointer"
-                onClick={() => {
-                  onChange(opt.value);
-                  setOpen(false);
-                }}
+                className={`px-4 py-2 cursor-pointer ${
+                  values.includes(opt.value)
+                    ? "bg-primary text-white"
+                    : "hover:bg-primary hover:text-white"
+                }`}
+                onClick={() => handleOptionClick(opt.value)}
               >
                 {opt.label}
               </li>
@@ -133,4 +183,4 @@ const Select: React.FC<SelectProps> = ({
   );
 };
 
-export default Select;
+export default MultiSelect;

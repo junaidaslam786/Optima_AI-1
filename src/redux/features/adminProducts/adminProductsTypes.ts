@@ -50,9 +50,3 @@ export interface UpdateAdminProduct {
   product_image_urls?: string[];
   thumbnail_url?: string;
 }
-
-export interface AdminProductImages {
-  id: string;
-  product_image_urls?: string[];
-  thumbnail_url?: string;
-}

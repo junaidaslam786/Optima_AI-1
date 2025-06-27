@@ -5,7 +5,7 @@ import {
   UpdateProductCategory,
 } from "./productCategoriesTypes";
 
-const API_BASE_URL = process.env.NEXT_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const productCategoriesApi = createApi({
   reducerPath: "productCategoriesApi",
@@ -46,7 +46,7 @@ export const productCategoriesApi = createApi({
     >({
       query: ({ id, ...patch }) => ({
         url: `/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body: patch,
       }),
       invalidatesTags: (result, error, { id }) => [
