@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { User, CreateUser, UpdateUser } from "./usersTypes";
+import { CreateUser, UpdateUser, User } from "./usersTypes";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

@@ -1,6 +1,6 @@
 export interface PartnerProfile {
-  id: string; // UUID
-  user_id: string; // UUID, FK to users
+  id: string;
+  user_id: string;
   company_name: string;
   company_slug: string;
   company_description?: string;
@@ -15,11 +15,11 @@ export interface PartnerProfile {
     | "rejected"
     | "suspended"
     | "deactivated";
-  approval_date?: string; // TIMESTAMPTZ
+  approval_date?: string;
   rejection_reason?: string;
   notes?: string;
-  created_at: string; // TIMESTAMPTZ
-  updated_at: string; // TIMESTAMPTZ
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreatePartnerProfile {

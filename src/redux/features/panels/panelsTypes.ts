@@ -9,13 +9,13 @@ export interface Panel {
 
 export interface CreatePanel {
   name: string;
-  category_id?: string;
   description?: string;
+  category_id?: string;
 }
 
 export interface UpdatePanel {
   id: string;
   name?: string;
-  category_id?: string;
   description?: string;
+  category_id?: string;
 }

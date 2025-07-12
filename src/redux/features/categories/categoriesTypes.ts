@@ -1,4 +1,4 @@
-export interface ProductCategory {
+export interface Category {
   id: string;
   name: string;
   description?: string;
@@ -6,12 +6,12 @@ export interface ProductCategory {
   updated_at: string;
 }
 
-export interface CreateProductCategory {
+export interface CreateCategory {
   name: string;
   description?: string;
 }
 
-export interface UpdateProductCategory {
+export interface UpdateCategory {
   id: string;
   name?: string;
   description?: string;

@@ -1,39 +1,46 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import rootReducer from "./rootReducer";
-
-// Import all API services
-import { usersApi } from "@/redux/features/users/usersApi";
-import { partnerProfilesApi } from "@/redux/features/partnerProfiles/partnerProfilesApi";
-import { panelsApi } from "@/redux/features/panels/panelsApi";
-import { uploadsApi } from "@/redux/features/uploads/uploadsApi";
-import { productCategoriesApi } from "@/redux/features/productCategories/productCategoriesApi";
-import { markersApi } from "@/redux/features/markers/markersApi";
-import { patientMarkerValuesApi } from "@/redux/features/patientMarkerValues/patientMarkerValuesApi";
-import { pdfReportsApi } from "@/redux/features/pdfReports/pdfReportsApi";
-import { adminProductsApi } from "@/redux/features/adminProducts/adminProductsApi";
-import { partnerProductsApi } from "@/redux/features/partnerProducts/partnerProductsApi";
-import { ordersApi } from "@/redux/features/orders/ordersApi";
-import { orderItemsApi } from "@/redux/features/orderItems/orderItemsApi";
+import { adminProductsApi } from "./features/adminProducts/adminProductsApi";
+import { categoriesApi } from "./features/categories/categoriesApi";
+import { cartsApi } from "./features/carts/cartsApi";
+import { cartItemsApi } from "./features/cartItems/cartItemsApi";
+import { markersApi } from "./features/markers/markersApi";
+import { orderItemsApi } from "./features/orderItems/orderItemsApi";
+import { ordersApi } from "./features/orders/ordersApi";
+import { panelsApi } from "./features/panels/panelsApi";
+import { partnerProductsApi } from "./features/partnerProducts/partnerProductsApi";
+import { partnerProfilesApi } from "./features/partnerProfiles/partnerProfilesApi";
+import { patientMarkerValuesApi } from "./features/patientMarkerValues/patientMarkerValuesApi";
+import { pdfReportsApi } from "./features/pdfReports/pdfReportsApi";
+import { shippingDetailsApi } from "./features/shippingDetails/shippingDetailsApi";
+import { stripeApi } from "./features/stripe/stripeApi";
+import { transactionsApi } from "./features/transactions/transactionsApi";
+import { uploadsApi } from "./features/uploads/uploadsApi";
+import { usersApi } from "./features/users/usersApi";
 
 export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
-      usersApi.middleware,
-      partnerProfilesApi.middleware,
-      panelsApi.middleware,
-      uploadsApi.middleware,
-      productCategoriesApi.middleware,
+      adminProductsApi.middleware,
+      categoriesApi.middleware,
+      cartsApi.middleware,
+      cartItemsApi.middleware,
       markersApi.middleware,
+      orderItemsApi.middleware,
+      ordersApi.middleware,
+      panelsApi.middleware,
+      partnerProductsApi.middleware,
+      partnerProfilesApi.middleware,
       patientMarkerValuesApi.middleware,
       pdfReportsApi.middleware,
-      adminProductsApi.middleware,
-      partnerProductsApi.middleware,
-      ordersApi.middleware,
-      orderItemsApi.middleware
+      shippingDetailsApi.middleware,
+      stripeApi.middleware,
+      transactionsApi.middleware,
+      uploadsApi.middleware,
+      usersApi.middleware,
     ),
-  devTools: process.env.NODE_ENV !== "production",
 });
 
 setupListeners(store.dispatch);

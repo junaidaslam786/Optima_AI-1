@@ -1,28 +1,20 @@
-export interface OrderItem {
-  id: string; // UUID
-  order_id: string; // UUID, FK to orders
-  partner_product_id: string; // UUID, FK to partner_products
-  quantity: number; // INTEGER
-  price_at_purchase: number; // NUMERIC
-  admin_revenue_share?: number; // NUMERIC
-  partner_revenue_share?: number; // NUMERIC
-  created_at: string; // TIMESTAMPTZ
-  updated_at: string; // TIMESTAMPTZ
-}
+import { PartnerProduct } from "../partnerProducts/partnerProductsTypes";
 
-export interface CreateOrderItem {
-  order_id: string;
-  partner_product_id: string;
+export interface OrderItem {
+  id: string;
+  order_id: string; // UUID of order
+  partner_product_id: string; // UUID of partner_product
   quantity: number;
   price_at_purchase: number;
   admin_revenue_share?: number;
   partner_revenue_share?: number;
+  created_at: string;
+  updated_at: string;
+  partner_products?: PartnerProduct; // Nested product details
 }
 
 export interface UpdateOrderItem {
   id: string;
-  order_id?: string;
-  partner_product_id?: string;
   quantity?: number;
   price_at_purchase?: number;
   admin_revenue_share?: number;

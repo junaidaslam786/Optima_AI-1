@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { OrderItem, CreateOrderItem, UpdateOrderItem } from "./orderItemsTypes";
+import { OrderItem, UpdateOrderItem } from "./orderItemsTypes";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -13,22 +13,14 @@ export const orderItemsApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: "OrderItem" as const, id })),
-              "OrderItem",
-            ]
+            ...result.map(({ id }) => ({ type: "OrderItem" as const, id })),
+            "OrderItem",
+          ]
           : ["OrderItem"],
     }),
     getOrderItemById: builder.query<OrderItem, string>({
       query: (id) => `/${id}`,
       providesTags: (result, error, id) => [{ type: "OrderItem", id }],
-    }),
-    createOrderItem: builder.mutation<OrderItem, CreateOrderItem>({
-      query: (newItem) => ({
-        url: "",
-        method: "POST",
-        body: newItem,
-      }),
-      invalidatesTags: ["OrderItem"],
     }),
     updateOrderItem: builder.mutation<OrderItem, UpdateOrderItem>({
       query: ({ id, ...patch }) => ({
@@ -43,10 +35,11 @@ export const orderItemsApi = createApi({
         url: `/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [
-        { type: "OrderItem", id },
-        "OrderItem",
-      ],
+      invalidatesTags: (
+        result,
+        error,
+        id,
+      ) => [{ type: "OrderItem", id }, "OrderItem"],
     }),
   }),
 });
@@ -54,7 +47,6 @@ export const orderItemsApi = createApi({
 export const {
   useGetOrderItemsQuery,
   useGetOrderItemByIdQuery,
-  useCreateOrderItemMutation,
   useUpdateOrderItemMutation,
   useDeleteOrderItemMutation,
 } = orderItemsApi;

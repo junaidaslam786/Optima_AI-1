@@ -1,55 +1,73 @@
 import { combineReducers } from "@reduxjs/toolkit";
-import usersReducer from "@/redux/features/users/usersSlice";
-import partnerProfilesReducer from "@/redux/features/partnerProfiles/partnerProfilesSlice";
-import panelsReducer from "@/redux/features/panels/panelsSlice";
-import uploadsReducer from "@/redux/features/uploads/uploadsSlice";
-import productCategoriesReducer from "@/redux/features/productCategories/productCategoriesSlice";
-import markersReducer from "@/redux/features/markers/markersSlice";
-import patientMarkerValuesReducer from "@/redux/features/patientMarkerValues/patientMarkerValuesSlice";
-import pdfReportsReducer from "@/redux/features/pdfReports/pdfReportsSlice";
-import adminProductsReducer from "@/redux/features/adminProducts/adminProductsSlice";
-import partnerProductsReducer from "@/redux/features/partnerProducts/partnerProductsSlice";
-import ordersReducer from "@/redux/features/orders/ordersSlice";
-import orderItemsReducer from "@/redux/features/orderItems/orderItemsSlice";
-
-import { usersApi } from "@/redux/features/users/usersApi";
-import { partnerProfilesApi } from "@/redux/features/partnerProfiles/partnerProfilesApi";
-import { panelsApi } from "@/redux/features/panels/panelsApi";
-import { uploadsApi } from "@/redux/features/uploads/uploadsApi";
-import { productCategoriesApi } from "@/redux/features/productCategories/productCategoriesApi";
-import { markersApi } from "@/redux/features/markers/markersApi";
-import { patientMarkerValuesApi } from "@/redux/features/patientMarkerValues/patientMarkerValuesApi";
-import { pdfReportsApi } from "@/redux/features/pdfReports/pdfReportsApi";
-import { adminProductsApi } from "@/redux/features/adminProducts/adminProductsApi";
-import { partnerProductsApi } from "@/redux/features/partnerProducts/partnerProductsApi";
-import { ordersApi } from "@/redux/features/orders/ordersApi";
-import { orderItemsApi } from "@/redux/features/orderItems/orderItemsApi";
+import adminProductsReducer from "./features/adminProducts/adminProductsSlice";
+import { adminProductsApi } from "./features/adminProducts/adminProductsApi";
+import categoriesReducer from "./features/categories/categoriesSlice";
+import { categoriesApi } from "./features/categories/categoriesApi";
+import cartsReducer from "./features/carts/cartsSlice";
+import { cartsApi } from "./features/carts/cartsApi";
+import cartItemsReducer from "./features/cartItems/cartItemsSlice";
+import { cartItemsApi } from "./features/cartItems/cartItemsApi";
+import markersReducer from "./features/markers/markersSlice";
+import { markersApi } from "./features/markers/markersApi";
+import orderItemsReducer from "./features/orderItems/orderItemsSlice";
+import { orderItemsApi } from "./features/orderItems/orderItemsApi";
+import ordersReducer from "./features/orders/ordersSlice";
+import { ordersApi } from "./features/orders/ordersApi";
+import panelsReducer from "./features/panels/panelsSlice";
+import { panelsApi } from "./features/panels/panelsApi";
+import partnerProductsReducer from "./features/partnerProducts/partnerProductsSlice";
+import { partnerProductsApi } from "./features/partnerProducts/partnerProductsApi";
+import partnerProfilesReducer from "./features/partnerProfiles/partnerProfilesSlice";
+import { partnerProfilesApi } from "./features/partnerProfiles/partnerProfilesApi";
+import patientMarkerValuesReducer from "./features/patientMarkerValues/patientMarkerValuesSlice";
+import { patientMarkerValuesApi } from "./features/patientMarkerValues/patientMarkerValuesApi";
+import pdfReportsReducer from "./features/pdfReports/pdfReportsSlice";
+import { pdfReportsApi } from "./features/pdfReports/pdfReportsApi";
+import shippingDetailsReducer from "./features/shippingDetails/shippingDetailsSlice";
+import { shippingDetailsApi } from "./features/shippingDetails/shippingDetailsApi";
+import { stripeApi } from "./features/stripe/stripeApi";
+import transactionsReducer from "./features/transactions/transactionsSlice";
+import { transactionsApi } from "./features/transactions/transactionsApi";
+import uploadsReducer from "./features/uploads/uploadsSlice";
+import { uploadsApi } from "./features/uploads/uploadsApi";
+import usersReducer from "./features/users/usersSlice";
+import { usersApi } from "./features/users/usersApi";
 
 const rootReducer = combineReducers({
-  [usersApi.reducerPath]: usersApi.reducer,
-  [partnerProfilesApi.reducerPath]: partnerProfilesApi.reducer,
-  [panelsApi.reducerPath]: panelsApi.reducer,
-  [uploadsApi.reducerPath]: uploadsApi.reducer,
-  [productCategoriesApi.reducerPath]: productCategoriesApi.reducer,
+  [adminProductsApi.reducerPath]: adminProductsApi.reducer,
+  [categoriesApi.reducerPath]: categoriesApi.reducer,
+  [cartsApi.reducerPath]: cartsApi.reducer,
+  [cartItemsApi.reducerPath]: cartItemsApi.reducer,
   [markersApi.reducerPath]: markersApi.reducer,
+  [orderItemsApi.reducerPath]: orderItemsApi.reducer,
+  [ordersApi.reducerPath]: ordersApi.reducer,
+  [panelsApi.reducerPath]: panelsApi.reducer,
+  [partnerProductsApi.reducerPath]: partnerProductsApi.reducer,
+  [partnerProfilesApi.reducerPath]: partnerProfilesApi.reducer,
   [patientMarkerValuesApi.reducerPath]: patientMarkerValuesApi.reducer,
   [pdfReportsApi.reducerPath]: pdfReportsApi.reducer,
-  [adminProductsApi.reducerPath]: adminProductsApi.reducer,
-  [partnerProductsApi.reducerPath]: partnerProductsApi.reducer,
-  [ordersApi.reducerPath]: ordersApi.reducer,
-  [orderItemsApi.reducerPath]: orderItemsApi.reducer,
-  users: usersReducer,
-  partnerProfiles: partnerProfilesReducer,
-  panels: panelsReducer,
-  uploads: uploadsReducer,
-  productCategories: productCategoriesReducer,
+  [shippingDetailsApi.reducerPath]: shippingDetailsApi.reducer,
+  [stripeApi.reducerPath]: stripeApi.reducer,
+  [transactionsApi.reducerPath]: transactionsApi.reducer,
+  [uploadsApi.reducerPath]: uploadsApi.reducer,
+  [usersApi.reducerPath]: usersApi.reducer,
+
+  adminProducts: adminProductsReducer,
+  categories: categoriesReducer,
+  carts: cartsReducer,
+  cartItems: cartItemsReducer,
   markers: markersReducer,
+  orderItems: orderItemsReducer,
+  orders: ordersReducer,
+  panels: panelsReducer,
+  partnerProducts: partnerProductsReducer,
+  partnerProfiles: partnerProfilesReducer,
   patientMarkerValues: patientMarkerValuesReducer,
   pdfReports: pdfReportsReducer,
-  adminProducts: adminProductsReducer,
-  partnerProducts: partnerProductsReducer,
-  orders: ordersReducer,
-  orderItems: orderItemsReducer,
+  shippingDetails: shippingDetailsReducer,
+  transactions: transactionsReducer,
+  uploads: uploadsReducer,
+  users: usersReducer,
 });
 
 export default rootReducer;

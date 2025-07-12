@@ -14,7 +14,7 @@ const adminProductsSlice = createSlice({
   reducers: {
     setSelectedAdminProductId: (
       state,
-      action: PayloadAction<string | null>
+      action: PayloadAction<string | null>,
     ) => {
       state.selectedAdminProductId = action.payload;
     },

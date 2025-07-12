@@ -1,9 +1,15 @@
+import { User } from "../users/usersTypes";
+import { PartnerProfile } from "../partnerProfiles/partnerProfilesTypes";
+import { OrderItem } from "../orderItems/orderItemsTypes";
+import { ShippingDetails } from "../shippingDetails/shippingDetailsTypes";
+import { Transaction } from "../transactions/transactionsTypes";
+
 export interface Order {
-  id: string; // UUID
-  customer_user_id: string; // UUID, FK to users
-  partner_id: string; // UUID, FK to partner_profiles
-  order_date: string; // TIMESTAMPTZ
-  total_amount: number; // NUMERIC
+  id: string;
+  customer_user_id: string;
+  partner_id: string;
+  order_date: string;
+  total_amount: number;
   currency: string;
   order_status:
     | "pending"
@@ -12,44 +18,39 @@ export interface Order {
     | "delivered"
     | "cancelled"
     | "refunded";
-  shipping_address?: string;
-  billing_address?: string;
   payment_status: "pending" | "paid" | "failed" | "refunded";
-  payment_method?: string;
-  shipping_method?: string;
-  tracking_number?: string;
-  created_at: string; // TIMESTAMPTZ
-  updated_at: string; // TIMESTAMPTZ
+  primary_transaction_id?: string;
+  created_at: string;
+  updated_at: string;
+  users?: User;
+  partner_profiles?: PartnerProfile;
+  order_items?: OrderItem[];
+  shipping_details?: ShippingDetails;
+  transactions?: Transaction;
 }
 
 export interface CreateOrder {
-  customer_user_id: string;
+  cart_id: string;
+  user_email: string;
+  user_name?: string;
+  shipping_details: {
+    recipient_name: string;
+    address_line1: string;
+    address_line2?: string;
+    city: string;
+    state_province?: string;
+    postal_code: string;
+    country: string;
+    phone_number?: string;
+    shipping_cost?: number;
+    shipping_method?: string;
+  };
+  payment_method_id: string;
   partner_id: string;
-  order_date?: string; // Default now()
-  total_amount: number;
-  currency?: string; // Default 'GBP'
-  order_status?:
-    | "pending"
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled"
-    | "refunded"; // Default 'pending'
-  shipping_address?: string;
-  billing_address?: string;
-  payment_status?: "pending" | "paid" | "failed" | "refunded"; // Default 'pending'
-  payment_method?: string;
-  shipping_method?: string;
-  tracking_number?: string;
 }
 
 export interface UpdateOrder {
   id: string;
-  customer_user_id?: string;
-  partner_id?: string;
-  order_date?: string;
-  total_amount?: number;
-  currency?: string;
   order_status?:
     | "pending"
     | "processing"
@@ -57,10 +58,13 @@ export interface UpdateOrder {
     | "delivered"
     | "cancelled"
     | "refunded";
-  shipping_address?: string;
-  billing_address?: string;
   payment_status?: "pending" | "paid" | "failed" | "refunded";
-  payment_method?: string;
-  shipping_method?: string;
   tracking_number?: string;
+}
+
+export interface CreateOrderResponse {
+  order_id: string;
+  clientSecret?: string;
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  error?: string;
 }

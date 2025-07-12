@@ -23,7 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.511.0",
-    "next": "15.3.2",
+    "next": "^15.3.5",
     "next-auth": "^4.24.11",
     "openai": "^4.103.0",
     "papaparse": "^5.5.3",
@@ -37,6 +37,7 @@
     "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
     "remark-gfm": "^4.0.1",
+    "stripe": "^18.3.0",
     "swr": "^2.3.3",
     "xlsx": "^0.18.5"
   },

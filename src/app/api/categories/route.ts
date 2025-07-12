@@ -1,23 +1,22 @@
-//app/api/product-categories/route.ts
-
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+// GET all categories
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
-      .from("product_categories")
+      .from("categories")
       .select("*");
 
     if (error) {
-      console.error("Error fetching all product categories:", error.message);
+      console.error("Error fetching categories:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error(
-      "Unexpected error in GET /api/product-categories:",
+      "Unexpected error fetching categories:",
       (err as Error).message
     );
     return NextResponse.json(
@@ -27,32 +26,38 @@ export async function GET() {
   }
 }
 
+// POST a new category (Admin only)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
     if (!body.name) {
       return NextResponse.json(
-        { error: "Missing required field: name for product category" },
+        { error: "Missing required field: name" },
         { status: 400 }
       );
     }
 
     const { data, error } = await supabaseAdmin
-      .from("product_categories")
-      .insert([body])
+      .from("categories")
+      .insert([
+        {
+          name: body.name,
+          description: body.description,
+        },
+      ])
       .select()
       .single();
 
     if (error) {
-      console.error("Error creating product category:", error.message);
+      console.error("Error creating category:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error(
-      "Unexpected error creating product category:",
+      "Unexpected error creating category:",
       (err as Error).message
     );
     return NextResponse.json(
