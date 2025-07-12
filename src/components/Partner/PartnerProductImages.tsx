@@ -4,12 +4,15 @@ import React, { useState, useEffect, FormEvent } from "react";
 // import Image from "next/image"; // Removed next/image due to resolution issues
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import Input from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
-import { useAddPartnerProductImageMutation, useDeletePartnerProductImageMutation } from "@/redux/features/partnerProducts/partnerProductsApi";
+import {
+  useAddPartnerProductImageMutation,
+  useDeletePartnerProductImageMutation,
+} from "@/redux/features/partnerProducts/partnerProductsApi";
 
 interface PartnerProductImagesProps {
   productId: string;

@@ -57,6 +57,36 @@ export const adminProductsApi = createApi({
         "AdminProduct",
       ],
     }),
+    addImage: builder.mutation<
+      AdminProduct,
+      { id: string; formData: FormData }
+    >({
+      query: ({ id, formData }) => ({
+        url: `/${id}`,
+        method: "PATCH",
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "AdminProduct", id },
+      ],
+    }),
+    deleteImage: builder.mutation<
+      AdminProduct,
+      {
+        id: string;
+        product_image_urls: string[];
+        thumbnail_url?: string | null;
+      }
+    >({
+      query: ({ id, product_image_urls, thumbnail_url }) => ({
+        url: `/${id}`,
+        method: "PATCH",
+        body: { product_image_urls, thumbnail_url },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "AdminProduct", id },
+      ],
+    }),
   }),
 });
 
@@ -66,4 +96,6 @@ export const {
   useCreateAdminProductMutation,
   useUpdateAdminProductMutation,
   useDeleteAdminProductMutation,
+  useAddImageMutation,
+  useDeleteImageMutation,
 } = adminProductsApi;

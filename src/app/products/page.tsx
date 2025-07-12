@@ -1,4 +1,3 @@
-// app/products/page.tsx
 import PartnerProductList from "@/components/Client/ProductList";
 
 export default function AllPartnerProductsPage() {

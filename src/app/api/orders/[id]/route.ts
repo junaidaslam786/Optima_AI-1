@@ -3,10 +3,10 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { data, error } = await supabaseAdmin
       .from("orders")
@@ -49,10 +49,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   try {
-    const { id } = params; // Order ID
+    const { id } = await params;
     const body = await request.json();
     const { order_status, payment_status, tracking_number } = body;
 

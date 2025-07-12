@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import Input from "@/components/ui/Input";
 import { Checkbox } from "../ui/Checkbox";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { toast } from "react-hot-toast";
@@ -14,18 +14,18 @@ import {
 } from "@/redux/features/adminProducts/adminProductsApi";
 
 interface AdminProductImagesProps {
-  productId: string; // The ID of the product this component is for
-  images: string[]; // product_image_urls array
-  thumbnail: string | null; // thumbnail_url
-  isLoading: boolean; // Loading state for initial image fetch (e.g., from parent product query)
+  productId: string;
+  images: string[];
+  thumbnail: string | null;
+  isLoading: boolean;
   isError: boolean;
   error?: Error;
 }
 
 const AdminProductImages: React.FC<AdminProductImagesProps> = ({
   productId,
-  images, // This is now `product_image_urls` from `AdminProduct`
-  thumbnail, // This is now `thumbnail_url` from `AdminProduct`
+  images,
+  thumbnail,
   isLoading,
   isError,
   error,
@@ -84,8 +84,6 @@ const AdminProductImages: React.FC<AdminProductImagesProps> = ({
     }
   };
 
-  // Helper function to validate image dimensions and aspect ratio
-  // This client-side validation is still valuable for user experience
   const validateImage = (
     width: number,
     height: number

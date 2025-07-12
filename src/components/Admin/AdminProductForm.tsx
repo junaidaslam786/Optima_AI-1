@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/ui/Input";
+import Input from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import MultiSelect, { Option } from "@/components/ui/MultiSelect"; // Ensure MultiSelect is correctly imported
 import { useGetPanelsQuery } from "@/redux/features/panels/panelsApi";
 import { useGetMarkersQuery } from "@/redux/features/markers/markersApi";
-import { useGetProductCategoriesQuery } from "@/redux/features/productCategories/productCategoriesApi";
 import { CreateAdminProduct } from "@/redux/features/adminProducts/adminProductsTypes"; // Correct type import
+import { useGetCategoriesQuery } from "@/redux/features/categories/categoriesApi";
 
 interface AdminProductFormProps {
   formState: CreateAdminProduct;
@@ -33,7 +33,7 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
 }) => {
   const { data: panels, isLoading: isLoadingPanels } = useGetPanelsQuery();
   const { data: categories, isLoading: isLoadingCategories } =
-    useGetProductCategoriesQuery();
+    useGetCategoriesQuery();
   const { data: markers, isLoading: isLoadingMarkers } = useGetMarkersQuery();
 
   // Prepare options for MultiSelect components

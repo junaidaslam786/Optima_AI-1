@@ -221,7 +221,7 @@ const OrderList: React.FC<OrderListProps> = ({
                     {order.id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {order.currency || order.billing_address || "N/A"}
+                    {order.currency || order.currency || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {order.created_at || "N/A"}

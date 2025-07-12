@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { CreatePartnerProduct } from "@/redux/features/partnerProducts/partnerProductsTypes"; // Correct type import
 import { AdminProduct } from "@/redux/features/adminProducts/adminProductsTypes";
 import Select from "../ui/Select";
-import { Input } from "../ui/Input";
+import Input from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
 import { Checkbox } from "../ui/Checkbox";
 import Button from "../ui/Button";

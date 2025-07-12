@@ -36,7 +36,7 @@ const INITIAL_FORM: FormState = {
   result_timeline: undefined,
   additional_test_information: undefined,
   corresponding_panels: [],
-  admin_user_id: undefined,
+  admin_user_id: "",
 };
 
 function clean<T extends Record<string, unknown>>(obj: T): Partial<T> {
@@ -161,7 +161,7 @@ const AdminProductManager: React.FC = () => {
         additional_test_information:
           selectedProductDetails.additional_test_information ?? undefined,
         corresponding_panels: selectedProductDetails.corresponding_panels || [],
-        admin_user_id: selectedProductDetails.admin_user_id ?? undefined,
+        admin_user_id: selectedProductDetails.admin_user_id ?? "",
       });
     } else if (!selectedProductId) {
       setFormState(INITIAL_FORM);
@@ -244,7 +244,7 @@ const AdminProductManager: React.FC = () => {
     e.preventDefault();
     const payload: FormState = {
       ...formState,
-      admin_user_id: userId,
+      admin_user_id: userId ?? "",
     };
 
     const cleanedPayload = clean(payload);
