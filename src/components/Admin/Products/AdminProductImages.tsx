@@ -5,7 +5,7 @@ import Image from "next/image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { Checkbox } from "../ui/Checkbox";
+import { Checkbox } from "@/components/ui/Checkbox";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import { toast } from "react-hot-toast";
 import {

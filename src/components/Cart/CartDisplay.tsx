@@ -18,12 +18,12 @@ import {
 import { CartItem } from "@/redux/features/cartItems/cartItemsTypes";
 import { FetchBaseQueryError } from "@reduxjs/toolkit/query"; // Import FetchBaseQueryError
 import { SerializedError } from "@reduxjs/toolkit"; // Import SerializedError
+import { useSession } from "next-auth/react";
+import { withAuth } from "../Auth/withAuth";
 
-interface CartDisplayProps {
-  userId: string;
-}
-
-const CartDisplay: React.FC<CartDisplayProps> = ({ userId }) => {
+const CartDisplay: React.FC = () => {
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
   const router = useRouter();
 
   const {
@@ -31,8 +31,8 @@ const CartDisplay: React.FC<CartDisplayProps> = ({ userId }) => {
     isLoading,
     isError,
     error,
-    refetch: refetchCart, // Add refetch for manual updates
-  } = useGetCartByUserIdQuery(userId);
+    refetch: refetchCart,
+  } = useGetCartByUserIdQuery(userId ?? "");
 
   const [updateCartItemQuantity, { isLoading: isUpdatingQuantity }] =
     useUpdateCartItemQuantityMutation();
@@ -113,7 +113,7 @@ const CartDisplay: React.FC<CartDisplayProps> = ({ userId }) => {
 
   const handleClearCart = async () => {
     try {
-      await deleteCart(userId).unwrap();
+      await deleteCart(userId ?? "").unwrap();
       toast.success("Cart cleared successfully!");
       refetchCart(); // Manually refetch
     } catch (err: unknown) {
@@ -266,4 +266,4 @@ const CartDisplay: React.FC<CartDisplayProps> = ({ userId }) => {
   );
 };
 
-export default CartDisplay;
+export default withAuth(CartDisplay, { allowedRoles: ["client"] });

@@ -6,7 +6,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import PartnerDetailsModal from "@/components/Admin/PartnerDetailsModal";
+import PartnerDetailsModal from "@/components/Admin/Users/PartnerDetailsModal";
 import {
   useGetPartnerProfilesQuery,
   useUpdatePartnerProfileMutation,

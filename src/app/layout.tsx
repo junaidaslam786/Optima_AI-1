@@ -1,5 +1,3 @@
-// app/layout.tsx
-
 import "./globals.css";
 import { ReactNode } from "react";
 import ClientProvider from "@/components/Main/ClientProvider";

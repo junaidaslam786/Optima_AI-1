@@ -15,6 +15,7 @@ interface NavLink {
 
 const navData: Record<string, NavLink[]> = {
   guest: [
+    { href: "/products", label: "Products" },
     { href: "/purchase", label: "Purchase a Test Kit" },
     {
       href: "#",
@@ -37,6 +38,9 @@ const navData: Record<string, NavLink[]> = {
   ],
   client: [
     { href: "/dashboard", label: "Dashboard", authRequired: true },
+    { href: "/products", label: "Products" },
+    { href: "/cart", label: "Cart", authRequired: true },
+    { href: "/orders", label: "My Orders", authRequired: true },
     { href: "/reports", label: "Past Reports", authRequired: true },
     { href: "/purchase", label: "Purchase a Test Kit" },
     {
@@ -86,19 +90,53 @@ const navData: Record<string, NavLink[]> = {
     },
   ],
   admin: [
-    {
-      href: "/admin/partner-approval",
-      label: "Partner Approval",
-      authRequired: true,
-    },
-    { href: "/uploads", label: "Uploads", authRequired: true },
-    { href: "/admin/products", label: "Products", authRequired: true },
+    { href: "/admin/dashboard", label: "Dashboard", authRequired: true },
+    { href: "/admin/products", label: "Admin Products", authRequired: true },
     { href: "/admin/orders", label: "Orders", authRequired: true },
     {
       href: "#",
       label: "Profile",
       authRequired: true,
       subLinks: [{ href: "/admin/profile", label: "My Profile" }],
+    },
+    {
+      href: "#",
+      label: "Uploads",
+      authRequired: true,
+      subLinks: [
+        { href: "/uploads", label: "Uploads" },
+        { href: "/admin/uploads", label: "Uploads List" },
+      ],
+    },
+    {
+      href: "#",
+      label: "User Management",
+      authRequired: true,
+      subLinks: [
+        { href: "/admin/users", label: "Users" },
+        {
+          href: "/admin/partner-profiles",
+          label: "Partners",
+        },
+        {
+          href: "/admin/partner-approval",
+          label: "Partner Approval",
+        },
+      ],
+    },
+    {
+      href: "#",
+      label: "Settings",
+      authRequired: true,
+      subLinks: [
+        { href: "/admin/categories", label: "Categories" },
+        { href: "/admin/markers", label: "Markers" },
+        { href: "/admin/panels", label: "Panels" },
+        {
+          href: "/admin/transactions",
+          label: "Transactions",
+        },
+      ],
     },
   ],
 };

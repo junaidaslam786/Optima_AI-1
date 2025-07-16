@@ -1,6 +1,4 @@
-// app/uploads/page.tsx
-
-import CsvUploads from "@/components/Uploads/CsvUploads";
+import CsvUploads from "@/components/Admin/Uploads/CsvUploads";
 
 export default function UploadsPage() {
   return (

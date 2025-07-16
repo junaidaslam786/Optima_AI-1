@@ -1,8 +1,4 @@
-// app/admin/orders/page.tsx
-"use client";
-
 import OrderList from "@/components/Orders/OrderList";
-import { withAuth } from "@/components/Auth/withAuth";
 
 function AdminOrdersPage() {
   return (
@@ -12,4 +8,4 @@ function AdminOrdersPage() {
   );
 }
 
-export default withAuth(AdminOrdersPage, { allowedRoles: ["admin"] });
+export default AdminOrdersPage;

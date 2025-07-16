@@ -10,7 +10,7 @@ import { useGetOrderItemsQuery } from "@/redux/features/orderItems/orderItemsApi
 interface OrderDetailProps {
   orderId: string;
   onBack: () => void;
-  mode: "admin" | "partner" | "customer";
+  mode: "admin" | "partner" | "client";
 }
 
 const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {

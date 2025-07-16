@@ -12,23 +12,18 @@ import OrderDetail from "@/components/Orders/OrderDetail";
 import { withAuth } from "@/components/Auth/withAuth";
 import { Order } from "@/redux/features/orders/ordersTypes";
 
-type OrderListViewMode = "admin" | "partner" | "customer";
+type OrderListViewMode = "admin" | "partner" | "client";
 
 interface OrderListProps {
   mode: OrderListViewMode;
-  filterByUserId?: string;
-  filterByPartnerId?: string;
 }
 
-const OrderList: React.FC<OrderListProps> = ({
-  mode,
-  filterByUserId,
-  filterByPartnerId,
-}) => {
+const OrderList: React.FC<OrderListProps> = ({ mode }) => {
   const queryClient = useQueryClient();
   const { data: session, status } = useSession();
-  const user = session?.user;
   const sessionLoading = status === "loading";
+  const user = session?.user;
+  const filterById = user?.id || null;
 
   const [alert, setAlert] = useState<{
     type: "success" | "error";
@@ -37,8 +32,8 @@ const OrderList: React.FC<OrderListProps> = ({
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const canViewAllOrders = user?.role === "admin";
-  const canViewPartnerOrders = user?.role === "partner" && filterByPartnerId;
-  const canViewCustomerOrders = user && filterByUserId === user.id;
+  const canViewPartnerOrders = user?.role === "partner" && filterById;
+  const canViewCustomerOrders = user && filterById === user.id;
 
   const {
     data: orders,
@@ -48,15 +43,15 @@ const OrderList: React.FC<OrderListProps> = ({
   } = useQuery<Order[], Error>({
     queryKey: [
       "orders",
-      { customerId: filterByUserId, partnerId: filterByPartnerId, mode },
+      { customerId: filterById, partnerId: filterById, mode },
     ],
     queryFn: () => {
       let queryString = "";
-      if (filterByUserId) {
-        queryString += `customer_user_id=${filterByUserId}`;
+      if (filterById) {
+        queryString += `customer_user_id=${filterById}`;
       }
-      if (filterByPartnerId) {
-        queryString += `<span class="math-inline">\{queryString ? '&' \: ''\}partner\_id\=</span>{filterByPartnerId}`;
+      if (filterById) {
+        queryString += `<span class="math-inline">\{queryString ? '&' \: ''\}partner\_id\=</span>{filterById}`;
       }
       return api.get(`/orders${queryString ? `?${queryString}` : ""}`);
     },
@@ -98,28 +93,6 @@ const OrderList: React.FC<OrderListProps> = ({
     );
   }
 
-  if (
-    !user ||
-    (mode === "admin" && user.role !== "admin") ||
-    (mode === "partner" && user.role !== "partner") ||
-    (mode === "customer" && user.id !== filterByUserId)
-  ) {
-    return (
-      <div className="text-center mt-10 p-6 bg-red-50 border border-red-200 text-red-800 rounded-lg mx-auto max-w-md">
-        <p className="font-semibold">
-          Access Denied: You do not have permission to view these orders.
-        </p>
-        <Button
-          variant="primary"
-          className="mt-4"
-          onClick={() => (window.location.href = "/")}
-        >
-          Go to Home
-        </Button>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -152,7 +125,7 @@ const OrderList: React.FC<OrderListProps> = ({
       <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center">
         {mode === "admin" && "All Orders"}
         {mode === "partner" && "Your Partner Orders"}
-        {mode === "customer" && "Your Orders"}
+        {mode === "client" && "Your Orders"}
       </h1>
       {alert && (
         <div className="mb-6">
@@ -308,4 +281,6 @@ const OrderList: React.FC<OrderListProps> = ({
   );
 };
 
-export default withAuth(OrderList, { allowedRoles: ["partner"] });
+export default withAuth(OrderList, {
+  allowedRoles: ["partner", "admin", "client"],
+});

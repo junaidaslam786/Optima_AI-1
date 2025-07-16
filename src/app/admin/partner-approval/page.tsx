@@ -1,5 +1,5 @@
 // app/admin/partner-approval/page.tsx
-import PartnerApprovalList from "@/components/Admin/PartnerApprovalList";
+import PartnerApprovalList from "@/components/Admin/Users/PartnerApprovalList";
 
 export default function AdminPartnerApprovalPage() {
   return (

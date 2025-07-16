@@ -1,5 +1,5 @@
 // app/admin/products/page.tsx
-import AdminProductManager from '@/components/Admin/AdminProductManager';
+import AdminProductManager from '@/components/Admin/Products/AdminProductManager';
 
 export default function AdminProductsPage() {
   return (

@@ -3,9 +3,9 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { toast } from "react-hot-toast";
 import { withAuth } from "@/components/Auth/withAuth";
-import AdminProductList from "@/components/Admin/AdminProductList";
-import AdminProductForm from "@/components/Admin/AdminProductForm";
-import AdminProductImages from "@/components/Admin/AdminProductImages";
+import AdminProductList from "@/components/Admin/Products/AdminProductList";
+import AdminProductForm from "@/components/Admin/Products/AdminProductForm";
+import AdminProductImages from "@/components/Admin/Products/AdminProductImages";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import FullPageLoader from "@/components/ui/FullPageLoader";
 import { useSession } from "next-auth/react";

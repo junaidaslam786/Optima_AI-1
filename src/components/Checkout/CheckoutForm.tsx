@@ -17,12 +17,12 @@ import { setPaymentIntentDetails } from "@/redux/features/stripe/stripeSlice";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import { FetchBaseQueryError } from "@reduxjs/toolkit/query"; // Import FetchBaseQueryError
 import { SerializedError } from "@reduxjs/toolkit"; // Import SerializedError
+import { useSession } from "next-auth/react";
+import { withAuth } from "../Auth/withAuth";
 
-interface CheckoutFormProps {
-  userId: string;
-}
-
-const CheckoutForm: React.FC<CheckoutFormProps> = ({ userId }) => {
+const CheckoutForm: React.FC = () => {
+  const { data: session } = useSession();
+  const userId = session?.user?.id || "";
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -385,4 +385,4 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ userId }) => {
   );
 };
 
-export default CheckoutForm;
+export default withAuth(CheckoutForm, { allowedRoles: ["client"] });
