@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface BlogPost {
   id: string;
@@ -108,26 +109,69 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 // POST: Create a new blog post (Admin only)
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const {
-      title,
-      slug,
-      excerpt,
-      content_path,
-      author_id,
-      published_at,
-      is_published,
-      seo_meta_title,
-      seo_meta_description,
-      featured_image_url,
-      category_ids,
-    } = await request.json();
+    const formData = await request.formData();
 
-    if (!title || !slug || !content_path || !author_id) {
+    const title = formData.get("title") as string;
+    const slug = formData.get("slug") as string;
+    const excerpt = formData.get("excerpt") as string | null;
+    const author_id = formData.get("author_id") as string;
+    const published_at = formData.get("published_at") as string | null;
+    const is_published = formData.get("is_published") === "true";
+    const seo_meta_title = formData.get("seo_meta_title") as string | null;
+    const seo_meta_description = formData.get("seo_meta_description") as string | null;
+    const featured_image_url = formData.get("featured_image_url") as string | null;
+    const category_ids_raw = formData.get("category_ids") as string | null;
+    const category_ids = category_ids_raw ? category_ids_raw.split(',').map(id => id.trim()).filter(id => id) : [];
+    const contentFile = formData.get("content_file") as File | null;
+
+    if (!title || !slug || !author_id || !contentFile) {
       return NextResponse.json(
-        { error: "Missing required fields for blog post" },
+        { error: "Missing required fields for blog post: title, slug, author_id, content_file" },
         { status: 400 }
       );
     }
+
+    let content_path: string | null = null;
+    if (contentFile) {
+      const fileExtension = contentFile.name.split('.').pop();
+      const uniqueFileName = `${uuidv4()}.${fileExtension}`;
+      const filePath = `blog-post-files/${uniqueFileName}`;
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from('blog-post-files')
+        .upload(filePath, contentFile, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Error uploading content file to Supabase Storage:", uploadError.message);
+        return NextResponse.json(
+          { error: "Failed to upload content file.", details: uploadError.message },
+          { status: 500 }
+        );
+      }
+
+      // Get the public URL of the uploaded file
+      const { data: publicUrlData } = supabaseAdmin.storage
+        .from('blog-post-files')
+        .getPublicUrl(filePath);
+
+      if (publicUrlData) {
+        content_path = publicUrlData.publicUrl;
+      } else {
+        return NextResponse.json(
+          { error: "Failed to get public URL for uploaded file." },
+          { status: 500 }
+        );
+      }
+    } else {
+        return NextResponse.json(
+            { error: "No content file provided." },
+            { status: 400 }
+        );
+    }
+
 
     const { data: newPost, error: postError } = await supabaseAdmin
       .from("blog_posts")
@@ -135,7 +179,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         title,
         slug,
         excerpt,
-        content_path,
+        content_path, // This will now be the Supabase Storage URL
         author_id,
         published_at: published_at || new Date().toISOString(),
         is_published: is_published !== undefined ? is_published : false,

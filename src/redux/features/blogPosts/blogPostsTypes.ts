@@ -32,7 +32,7 @@ export interface CreateBlogPost {
     title: string;
     slug: string;
     excerpt?: string;
-    content_path: string;
+    content_file: File;
     author_id: string;
     published_at?: string;
     is_published?: boolean;

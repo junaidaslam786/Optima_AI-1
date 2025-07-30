@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { BlogPost, CreateBlogPost, UpdateBlogPost } from "./blogPostsTypes";
+import { BlogPost } from "./blogPostsTypes";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -41,20 +41,20 @@ export const blogPostsApi = createApi({
       providesTags: (result, error, slug) => [{ type: "BlogPost", id: slug }],
     }),
 
-    createBlogPost: builder.mutation<BlogPost, CreateBlogPost>({
-      query: (newPost) => ({
+    createBlogPost: builder.mutation<BlogPost, FormData>({
+      query: (formData) => ({
         url: "",
         method: "POST",
-        body: newPost,
+        body: formData,
       }),
       invalidatesTags: ["BlogPost"],
     }),
 
-    updateBlogPost: builder.mutation<BlogPost, UpdateBlogPost>({
-      query: ({ slug, ...patch }) => ({
+    updateBlogPost: builder.mutation<BlogPost, { slug: string; formData: FormData }>({
+      query: ({ slug, formData }) => ({
         url: `/${slug}`,
         method: "PATCH",
-        body: patch,
+        body: formData,
       }),
       invalidatesTags: (result, error, { slug }) => [{ type: "BlogPost", id: slug }],
     }),

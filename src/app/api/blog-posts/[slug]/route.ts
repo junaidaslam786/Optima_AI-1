@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin"; // Assuming this path is correct
 import { PostCategoryJunction } from "../route";
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(
   _request: NextRequest,
@@ -62,7 +63,76 @@ export async function PATCH(
 ): Promise<NextResponse> {
   try {
     const { slug } = await params;
-    const { category_ids, ...body } = await request.json();
+    
+    // Check if the request contains FormData (for file uploads) or JSON
+    const contentType = request.headers.get("content-type");
+    
+    let body: Record<string, unknown>;
+    let category_ids: string[] | undefined;
+    
+    if (contentType?.includes("multipart/form-data")) {
+      // Handle FormData for file uploads
+      const formData = await request.formData();
+      
+      body = {
+        title: formData.get("title") as string || undefined,
+        excerpt: formData.get("excerpt") as string || undefined,
+        author_id: formData.get("author_id") as string || undefined,
+        published_at: formData.get("published_at") as string || undefined,
+        is_published: formData.get("is_published") === "true",
+        seo_meta_title: formData.get("seo_meta_title") as string || undefined,
+        seo_meta_description: formData.get("seo_meta_description") as string || undefined,
+        featured_image_url: formData.get("featured_image_url") as string || undefined,
+      };
+      
+      // Handle category_ids
+      const category_ids_raw = formData.get("category_ids") as string | null;
+      category_ids = category_ids_raw ? category_ids_raw.split(',').map(id => id.trim()).filter(id => id) : undefined;
+      
+      // Handle file upload if present
+      const contentFile = formData.get("content_file") as File | null;
+      if (contentFile) {
+        const fileExtension = contentFile.name.split('.').pop();
+        const uniqueFileName = `${uuidv4()}.${fileExtension}`;
+        const filePath = `blogPostFiles/${uniqueFileName}`;
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from('blogPostFiles')
+          .upload(filePath, contentFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Error uploading content file to Supabase Storage:", uploadError.message);
+          return NextResponse.json(
+            { error: "Failed to upload content file.", details: uploadError.message },
+            { status: 500 }
+          );
+        }
+
+        // Get the public URL of the uploaded file
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from('blogPostFiles')
+          .getPublicUrl(filePath);
+
+        if (publicUrlData) {
+          body.content_path = publicUrlData.publicUrl;
+        }
+      }
+      
+      // Remove undefined values
+      Object.keys(body).forEach(key => {
+        if (body[key] === undefined || body[key] === null || body[key] === "") {
+          delete body[key];
+        }
+      });
+      
+    } else {
+      // Handle JSON request (original behavior)
+      const jsonData = await request.json();
+      ({ category_ids, ...body } = jsonData);
+    }
 
     const { data: updatedPost, error: postError } = await supabaseAdmin
       .from("blog_posts")

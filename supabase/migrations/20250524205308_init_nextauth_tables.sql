@@ -296,7 +296,7 @@ GRANT SELECT, INSERT, DELETE ON public.post_category_junction TO anon, service_r
 -- 21) User Consents
 CREATE TABLE public.user_consents (
     id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id             UUID          NOT NULL REFERENCES public.users(id) ON DELETE CASCADE, -- Link to the user who gave consent
+    user_id             UUID         REFERENCES public.users(id) ON DELETE CASCADE, -- Link to the user who gave consent
     consent_timestamp   timestamp     NOT NULL DEFAULT now(), -- When consent was given/revoked
     consent_version     TEXT          NOT NULL, -- e.g., '1.0', '1.1' - to track changes in policy
     consent_type        TEXT          NOT NULL, -- e.g., 'cookies', 'terms_and_conditions', 'privacy_policy'

@@ -8,7 +8,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       consent_version,
       consent_type,
       agreed,
-      ip_address,
       user_agent,
       notes,
     } = await request.json();
@@ -20,6 +19,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown';
+
     const { data, error } = await supabaseAdmin
       .from("user_consents")
       .insert({
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         consent_version,
         consent_type,
         agreed,
-        ip_address: ip_address || request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+        ip_address: clientIp,
         user_agent: user_agent || request.headers.get('user-agent'),
         notes,
       })

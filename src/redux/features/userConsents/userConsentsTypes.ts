@@ -17,7 +17,6 @@ export interface CreateUserConsent {
   consent_version: string;
   consent_type: string;
   agreed: boolean;
-  ip_address?: string;
   user_agent?: string;
   notes?: string;
 }

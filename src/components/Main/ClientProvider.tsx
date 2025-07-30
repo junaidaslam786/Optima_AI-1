@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { usePathname } from "next/navigation";
 import { Provider } from "react-redux";
 import { store } from "@/redux/store";
+import CookieConsentBanner from "@/components/UserConsents/CookieConsentBanner";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
                 </header>
                 <main className="w-full min-h-[100vh] pt-[14vh] flex flex-col lg:flex-row">
                   {children}
+                  <CookieConsentBanner />
                 </main>
               </>
             ) : (
