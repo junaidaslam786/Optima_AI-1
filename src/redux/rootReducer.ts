@@ -1,6 +1,10 @@
 import { combineReducers } from "@reduxjs/toolkit";
 import adminProductsReducer from "./features/adminProducts/adminProductsSlice";
 import { adminProductsApi } from "./features/adminProducts/adminProductsApi";
+import blogCategoriesReducer from "./features/blogCategories/blogCategoriesSlice";
+import { blogCategoriesApi } from "./features/blogCategories/blogCategoriesApi";
+import blogPostsReducer from "./features/blogPosts/blogPostsSlice";
+import { blogPostsApi } from "./features/blogPosts/blogPostsApi";
 import categoriesReducer from "./features/categories/categoriesSlice";
 import { categoriesApi } from "./features/categories/categoriesApi";
 import cartsReducer from "./features/carts/cartsSlice";
@@ -30,11 +34,15 @@ import transactionsReducer from "./features/transactions/transactionsSlice";
 import { transactionsApi } from "./features/transactions/transactionsApi";
 import uploadsReducer from "./features/uploads/uploadsSlice";
 import { uploadsApi } from "./features/uploads/uploadsApi";
+import userConsentsReducer from "./features/userConsents/userConsentsSlice";
+import { userConsentsApi } from "./features/userConsents/userConsentsApi";
 import usersReducer from "./features/users/usersSlice";
 import { usersApi } from "./features/users/usersApi";
 
 const rootReducer = combineReducers({
   [adminProductsApi.reducerPath]: adminProductsApi.reducer,
+  [blogCategoriesApi.reducerPath]: blogCategoriesApi.reducer,
+  [blogPostsApi.reducerPath]: blogPostsApi.reducer,
   [categoriesApi.reducerPath]: categoriesApi.reducer,
   [cartsApi.reducerPath]: cartsApi.reducer,
   [cartItemsApi.reducerPath]: cartItemsApi.reducer,
@@ -50,9 +58,12 @@ const rootReducer = combineReducers({
   [stripeApi.reducerPath]: stripeApi.reducer,
   [transactionsApi.reducerPath]: transactionsApi.reducer,
   [uploadsApi.reducerPath]: uploadsApi.reducer,
+  [userConsentsApi.reducerPath]: userConsentsApi.reducer,
   [usersApi.reducerPath]: usersApi.reducer,
 
   adminProducts: adminProductsReducer,
+  blogCategoriesUI: blogCategoriesReducer,
+  blogPostsUI: blogPostsReducer,
   categories: categoriesReducer,
   carts: cartsReducer,
   cartItems: cartItemsReducer,
@@ -67,6 +78,7 @@ const rootReducer = combineReducers({
   shippingDetails: shippingDetailsReducer,
   transactions: transactionsReducer,
   uploads: uploadsReducer,
+  userConsentsUI: userConsentsReducer,
   users: usersReducer,
 });
 

@@ -23,7 +23,8 @@ VALUES (
     '$2b$10$gEE2s91KtQ7bnlUkDpyYeOh2Q/LQBjAsKdw5TP0olSc2GkUnb7jpC',
     'John Doe',
     'admin'
-);
+)
+ON CONFLICT (email) DO NOTHING; -- Prevents error if run multiple times
 GRANT SELECT, INSERT, UPDATE ON public.users TO anon, service_role;
 
 -- 3) Categories
@@ -186,7 +187,7 @@ CREATE TABLE public.orders (
     id                      UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_user_id        UUID          NOT NULL    REFERENCES public.users(id) ON DELETE RESTRICT,
     partner_id              UUID          NOT NULL    REFERENCES public.partner_profiles(id) ON DELETE RESTRICT,
-    primary_transaction_id  UUID          NOT NULL    REFERENCES public.transactions(id);
+    primary_transaction_id  UUID          UNIQUE      REFERENCES public.transactions(id), -- Added UNIQUE constraint for 1:1 with primary transaction
     order_date              timestamp     NOT NULL    DEFAULT now(),
     total_amount            NUMERIC       NOT NULL,
     currency                TEXT          NOT NULL    DEFAULT 'GBP',
@@ -252,6 +253,65 @@ CREATE TABLE public.shipping_details (
 );
 GRANT SELECT, INSERT, UPDATE ON public.shipping_details TO anon, service_role;
 
+--- NEW TABLES FOR BLOG & CONSENT ---
+
+-- 18) Blog Posts
+CREATE TABLE public.blog_posts (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    title         TEXT        NOT NULL,
+    slug          TEXT        NOT NULL UNIQUE, -- For clean URLs (e.g., /blog/my-awesome-post)
+    excerpt       TEXT,                        -- A short summary of the post
+    content_path  TEXT        NOT NULL UNIQUE, -- Path to the markdown file (e.g., 'posts/my-awesome-post.md')
+    author_id     UUID        REFERENCES public.users(id) ON DELETE SET NULL, -- Link to the user who authored the post
+    published_at  timestamp,                   -- When the post was published
+    is_published  BOOLEAN     NOT NULL DEFAULT FALSE,
+    seo_meta_title TEXT,                      -- For basic SEO meta tags
+    seo_meta_description TEXT,                -- For basic SEO meta tags
+    featured_image_url TEXT,                 -- URL for a featured image
+    created_at    timestamp   NOT NULL DEFAULT now(),
+    updated_at    timestamp   NOT NULL DEFAULT now()
+);
+GRANT SELECT ON public.blog_posts TO anon, service_role; -- Publicly viewable
+GRANT INSERT, UPDATE, DELETE ON public.blog_posts TO service_role; -- Only service_role (admin) can create/edit/delete
+
+-- 19) Blog Post Categories
+CREATE TABLE public.blog_post_categories (
+    id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    name          TEXT          NOT NULL UNIQUE,
+    slug          TEXT          NOT NULL UNIQUE, -- For category URLs
+    description   TEXT,
+    created_at    timestamp   NOT NULL DEFAULT now(),
+    updated_at    timestamp   NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.blog_post_categories TO anon, service_role;
+
+-- 20) Junction table for many-to-many relationship between blog_posts and blog_post_categories
+CREATE TABLE public.post_category_junction (
+    post_id       UUID          NOT NULL REFERENCES public.blog_posts(id) ON DELETE CASCADE,
+    category_id   UUID          NOT NULL REFERENCES public.blog_post_categories(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, category_id) -- Composite primary key to ensure uniqueness
+);
+GRANT SELECT, INSERT, DELETE ON public.post_category_junction TO anon, service_role;
+
+-- 21) User Consents
+CREATE TABLE public.user_consents (
+    id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id             UUID          NOT NULL REFERENCES public.users(id) ON DELETE CASCADE, -- Link to the user who gave consent
+    consent_timestamp   timestamp     NOT NULL DEFAULT now(), -- When consent was given/revoked
+    consent_version     TEXT          NOT NULL, -- e.g., '1.0', '1.1' - to track changes in policy
+    consent_type        TEXT          NOT NULL, -- e.g., 'cookies', 'terms_and_conditions', 'privacy_policy'
+    agreed              BOOLEAN       NOT NULL DEFAULT TRUE, -- TRUE for agreement, FALSE for revocation
+    ip_address          INET,                                 -- Optional: Record IP for audit trail
+    user_agent          TEXT,                                 -- Optional: Record user agent for audit trail
+    notes               TEXT,                                 -- Optional: Any additional notes about consent
+    created_at          timestamp   NOT NULL DEFAULT now(),
+    updated_at          timestamp   NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_user_consents_user_id ON public.user_consents (user_id);
+CREATE INDEX idx_user_consents_consent_type ON public.user_consents (consent_type);
+GRANT SELECT, INSERT ON public.user_consents TO anon, service_role;
+GRANT UPDATE ON public.user_consents TO service_role;
+
 
 --- Triggers & functions for updated_at timestamps ---
 
@@ -269,6 +329,21 @@ CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON public.users
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_users();
+
+-- categories
+DROP TRIGGER IF EXISTS trg_categories_updated_at ON public.categories;
+DROP FUNCTION IF EXISTS public.set_updated_at_categories();
+CREATE FUNCTION public.set_updated_at_categories()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_categories_updated_at
+  BEFORE UPDATE ON public.categories
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_categories();
 
 -- panels
 DROP TRIGGER IF EXISTS trg_panels_updated_at ON public.panels;
@@ -329,22 +404,6 @@ CREATE TRIGGER trg_patient_marker_values_updated_at
   BEFORE UPDATE ON public.patient_marker_values
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_patient_marker_values();
-
--- categories (Renamed from product_categories)
-DROP TRIGGER IF EXISTS trg_categories_updated_at ON public.categories;
-DROP FUNCTION IF EXISTS public.set_updated_at_categories();
-CREATE FUNCTION public.set_updated_at_categories()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at := NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-CREATE TRIGGER trg_categories_updated_at
-  BEFORE UPDATE ON public.categories
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.set_updated_at_categories();
-
 
 -- partner_profiles
 DROP TRIGGER IF EXISTS trg_partner_profiles_updated_at ON public.partner_profiles;
@@ -481,6 +540,50 @@ CREATE TRIGGER trg_shipping_details_updated_at
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_shipping_details();
 
+-- blog_posts
+DROP TRIGGER IF EXISTS trg_blog_posts_updated_at ON public.blog_posts;
+DROP FUNCTION IF EXISTS public.set_updated_at_blog_posts();
+CREATE FUNCTION public.set_updated_at_blog_posts()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_blog_posts_updated_at
+  BEFORE UPDATE ON public.blog_posts
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_blog_posts();
+
+-- blog_post_categories
+DROP TRIGGER IF EXISTS trg_blog_post_categories_updated_at ON public.blog_post_categories;
+DROP FUNCTION IF EXISTS public.set_updated_at_blog_post_categories();
+CREATE FUNCTION public.set_updated_at_blog_post_categories()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_blog_post_categories_updated_at
+  BEFORE UPDATE ON public.blog_post_categories
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_blog_post_categories();
+
+-- user_consents
+DROP TRIGGER IF EXISTS trg_user_consents_updated_at ON public.user_consents;
+DROP FUNCTION IF EXISTS public.set_updated_at_user_consents();
+CREATE FUNCTION public.set_updated_at_user_consents()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER trg_user_consents_updated_at
+  BEFORE UPDATE ON public.user_consents
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.set_updated_at_user_consents();
 
 --- NEW: Trigger for auto-populating partner_name and partner_description ---
 
