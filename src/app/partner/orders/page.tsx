@@ -59,8 +59,8 @@ export default function PartnerOrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12">
-      <OrderList mode="partner" filterByPartnerId={partnerProfile.id} />
+    <div className="w-full min-h-screen bg-gray-100 py-12">
+      <OrderList mode="partner" />
     </div>
   );
 }

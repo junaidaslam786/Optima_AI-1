@@ -147,7 +147,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
               </span>
             </p>
             <p>
-              <strong>Total Amount:</strong> ${order.total_amount.toFixed(2)}{" "}
+              <strong>Total Amount:</strong> {order.total_amount.toFixed(2)}{" "}
               {order.currency}
             </p>
             <p>

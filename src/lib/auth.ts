@@ -21,13 +21,11 @@ interface User {
   role: string;
 }
 
-// you only call createClient here to talk to your users table
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// 1️⃣ Define your options object
 export const authOptions: NextAuthOptions = {
   adapter: SupabaseAdapter({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,

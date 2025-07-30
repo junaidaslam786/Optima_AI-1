@@ -8,7 +8,7 @@ export async function GET() {
             .select(`
         *,
         users ( id, email ),
-        orders ( id, total_amount, order_status )
+        orders!transactions_order_id_fkey ( id, total_amount, order_status )
       `);
 
         if (error) {

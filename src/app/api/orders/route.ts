@@ -7,18 +7,18 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
       .from("orders")
       .select(`
-        *,
-        users ( id, email, name ),
-        partner_profiles ( id, company_name ),
-        order_items (
-          id,
-          quantity,
-          price_at_purchase,
-          partner_products ( id, partner_name, thumbnail_url )
-        ),
-        shipping_details ( * ),
-        transactions ( * )
-      `);
+                *,
+                users ( id, email, name ),
+                partner_profiles ( id, company_name ),
+                order_items (
+                    id,
+                    quantity,
+                    price_at_purchase,
+                    partner_products ( id, partner_name, thumbnail_url )
+                ),
+                shipping_details ( * ),
+                transactions!orders_primary_transaction_id_fkey ( * )
+            `);
 
     if (error) {
       console.error("Error fetching all orders:", error.message);
@@ -59,18 +59,17 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-
     const { data: cartData, error: cartError } = await supabaseAdmin
       .from("carts")
       .select(`
-        id,
-        user_id,
-        cart_items (
-          partner_product_id,
-          quantity,
-          price_at_addition
-        )
-      `)
+                id,
+                user_id,
+                cart_items (
+                    partner_product_id,
+                    quantity,
+                    price_at_addition
+                )
+            `)
       .eq("id", cart_id)
       .single();
 
@@ -90,7 +89,6 @@ export async function POST(request: Request) {
     const { user_id: existing_user_id, cart_items } = cartData;
 
     let customer_user_id = existing_user_id;
-
     if (!customer_user_id) {
       const { data: existingUser, error: fetchUserError } = await supabaseAdmin
         .from("users")
@@ -136,6 +134,7 @@ export async function POST(request: Request) {
         customer_user_id = newUser.id;
       }
     }
+
     let total_amount = 0;
     for (const item of cart_items) {
       total_amount += item.quantity * item.price_at_addition;
@@ -185,6 +184,7 @@ export async function POST(request: Request) {
         status: 500,
       });
     }
+
     const { error: shippingError } = await supabaseAdmin
       .from("shipping_details")
       .insert([
@@ -212,15 +212,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Create Stripe Payment Intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(total_amount * 100),
       currency: "gbp",
-      payment_method: payment_method_id,
-      confirm: true,
-      return_url: `${
-        request.headers.get("origin")
-      }/checkout/success?order_id=${new_order_id}`,
       metadata: {
         order_id: new_order_id,
         user_id: customer_user_id,
@@ -238,9 +232,7 @@ export async function POST(request: Request) {
             currency: "GBP",
             payment_gateway: "Stripe",
             gateway_transaction_id: paymentIntent.id,
-            transaction_status: paymentIntent.status === "succeeded"
-              ? "succeeded"
-              : "pending",
+            transaction_status: "pending",
             transaction_type: "sale",
             error_message: paymentIntent.status === "requires_action"
               ? "Payment requires action"
@@ -264,12 +256,6 @@ export async function POST(request: Request) {
       .from("orders")
       .update({
         primary_transaction_id: transactionData.id,
-        payment_status: paymentIntent.status === "succeeded"
-          ? "paid"
-          : "pending",
-        order_status: paymentIntent.status === "succeeded"
-          ? "processing"
-          : "pending",
       })
       .eq("id", new_order_id);
 

@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
-import Alert from "@/components/ui/Alert";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -67,8 +66,7 @@ const CartDisplay: React.FC = () => {
 
   useEffect(() => {
     if (isError) {
-      // No need to check 'error' here, as isError implies error exists
-      toast.error(`Failed to load cart: ${getErrorMessage(error)}`);
+      toast.error("Your Cart is Empty right now! Please add some items.");
     }
   }, [isError, error]);
 
@@ -144,14 +142,6 @@ const CartDisplay: React.FC = () => {
     );
   }
 
-  if (isError) {
-    return (
-      <div className="w-full text-center text-red-600 mt-10">
-        <Alert type="error" message={`Error: ${getErrorMessage(error)}`} />
-      </div>
-    );
-  }
-
   const cartItems = cart?.cart_items || [];
 
   return (
@@ -200,7 +190,7 @@ const CartDisplay: React.FC = () => {
                     By: {item.partner_products?.partner_id || "Unknown Partner"}
                   </p>
                   <p className="text-md font-medium text-primary mt-1">
-                    ${item.price_at_addition.toFixed(2)}
+                    £{item.price_at_addition.toFixed(2)}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -240,7 +230,7 @@ const CartDisplay: React.FC = () => {
 
           <div className="flex justify-between items-center border-t pt-6 mt-6">
             <h2 className="text-2xl font-bold text-gray-900">
-              Total: ${calculateTotal().toFixed(2)}
+              Total: £{calculateTotal().toFixed(2)}
             </h2>
             <div className="flex space-x-4">
               <Button

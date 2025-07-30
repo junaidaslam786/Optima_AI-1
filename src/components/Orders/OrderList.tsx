@@ -65,13 +65,13 @@ const OrderList: React.FC<OrderListProps> = ({ mode }) => {
   const updateOrderStatusMutation = useMutation<
     Order,
     Error,
-    { id: string; status: Order["order_status"] }
+    { id: string; order_status: Order["order_status"] }
   >({
-    mutationFn: ({ id, status }) => api.patch(`/orders/${id}`, { status }),
+    mutationFn: ({ id, order_status }) => api.patch(`/orders/${id}`, { order_status }),
     onSuccess: (_, variables) => {
       setAlert({
         type: "success",
-        message: `Order ${variables.status} successfully!`,
+        message: `Order ${variables.order_status} successfully!`,
       });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["order", variables.id] });
@@ -143,7 +143,7 @@ const OrderList: React.FC<OrderListProps> = ({ mode }) => {
         </p>
       ) : (
         <div className="overflow-x-auto bg-white shadow-xl rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th
@@ -236,7 +236,7 @@ const OrderList: React.FC<OrderListProps> = ({ mode }) => {
                     >
                       View Details
                     </Button>
-                    {mode === "admin" && order.order_status === "pending" && (
+                    {mode === "admin" && (order.order_status === "pending" || order.order_status === "processing") && (
                       <Button
                         variant="primary"
                         size="sm"
@@ -244,7 +244,7 @@ const OrderList: React.FC<OrderListProps> = ({ mode }) => {
                         onClick={() =>
                           updateOrderStatusMutation.mutate({
                             id: order.id,
-                            status: "shipped",
+                            order_status: "shipped",
                           })
                         }
                         isLoading={updateOrderStatusMutation.isPending}
@@ -261,7 +261,7 @@ const OrderList: React.FC<OrderListProps> = ({ mode }) => {
                         onClick={() =>
                           updateOrderStatusMutation.mutate({
                             id: order.id,
-                            status: "cancelled",
+                            order_status: "cancelled",
                           })
                         }
                         isLoading={updateOrderStatusMutation.isPending}

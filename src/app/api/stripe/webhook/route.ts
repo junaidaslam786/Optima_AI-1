@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!sig || !WEBHOOK_SECRET) {
+        console.error("Webhook Error: Missing Stripe signature or webhook secret.");
         return NextResponse.json({
             error: "No Stripe signature or webhook secret.",
         }, { status: 400 });
@@ -30,30 +31,27 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
         const errorMessage = err instanceof Error
             ? err.message
-            : "Unknown error";
+            : "Unknown error during webhook construction";
         console.error(`Webhook Error: ${errorMessage}`);
         return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, {
             status: 400,
         });
     }
 
-    // Handle the event
     switch (event.type) {
         case "payment_intent.succeeded":
             const paymentIntentSucceeded = event.data
                 .object as Stripe.PaymentIntent;
             console.log(
-                `PaymentIntent for ${paymentIntentSucceeded.amount} was succeeded!`,
+                `PaymentIntent for ${paymentIntentSucceeded.amount} was succeeded! (ID: ${paymentIntentSucceeded.id})`,
             );
 
-            // Retrieve order_id from metadata
             const orderIdSucceeded = paymentIntentSucceeded.metadata?.order_id;
             if (orderIdSucceeded) {
-                // Update the order and transaction status in your database
                 const { error: orderError } = await supabaseAdmin
                     .from("orders")
                     .update({
-                        order_status: "processing", // Or 'completed', depending on your flow
+                        order_status: "processing",
                         payment_status: "paid",
                     })
                     .eq("id", orderIdSucceeded);
@@ -85,7 +83,7 @@ export async function POST(req: NextRequest) {
             const paymentIntentFailed = event.data
                 .object as Stripe.PaymentIntent;
             console.log(
-                `PaymentIntent for ${paymentIntentFailed.amount} failed: ${paymentIntentFailed.last_payment_error?.message}`,
+                `PaymentIntent for ${paymentIntentFailed.amount} failed: ${paymentIntentFailed.last_payment_error?.message} (ID: ${paymentIntentFailed.id})`,
             );
 
             const orderIdFailed = paymentIntentFailed.metadata?.order_id;
@@ -93,7 +91,7 @@ export async function POST(req: NextRequest) {
                 const { error: orderError } = await supabaseAdmin
                     .from("orders")
                     .update({
-                        order_status: "cancelled", // Or 'payment_failed'
+                        order_status: "cancelled",
                         payment_status: "failed",
                     })
                     .eq("id", orderIdFailed);
@@ -122,6 +120,11 @@ export async function POST(req: NextRequest) {
                     );
                 }
             }
+            break;
+
+        case "charge.refunded":
+            const chargeRefunded = event.data.object as Stripe.Charge;
+            console.log(`Charge ${chargeRefunded.id} was refunded.`);
             break;
 
         default:

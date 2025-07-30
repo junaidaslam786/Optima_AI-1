@@ -169,7 +169,7 @@ const TransactionList: React.FC = () => {
                     {transaction.users?.email || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    ${transaction.transaction_amount.toFixed(2)}{" "}
+                    {transaction.transaction_amount.toFixed(2)}{" "}
                     {transaction.currency}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">

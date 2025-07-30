@@ -36,7 +36,6 @@ const AdminProductForm: React.FC<AdminProductFormProps> = ({
     useGetCategoriesQuery();
   const { data: markers, isLoading: isLoadingMarkers } = useGetMarkersQuery();
 
-  // Prepare options for MultiSelect components
   const panelOptions: Option[] =
     panels?.map((panel) => ({ value: panel.id, label: panel.name })) || [];
   const categoryOptions: Option[] =

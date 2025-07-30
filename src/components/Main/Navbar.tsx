@@ -95,12 +95,6 @@ const navData: Record<string, NavLink[]> = {
     { href: "/admin/orders", label: "Orders", authRequired: true },
     {
       href: "#",
-      label: "Profile",
-      authRequired: true,
-      subLinks: [{ href: "/admin/profile", label: "My Profile" }],
-    },
-    {
-      href: "#",
       label: "Uploads",
       authRequired: true,
       subLinks: [
@@ -137,6 +131,12 @@ const navData: Record<string, NavLink[]> = {
           label: "Transactions",
         },
       ],
+    },
+    {
+      href: "#",
+      label: "Profile",
+      authRequired: true,
+      subLinks: [{ href: "/profile", label: "My Profile" }],
     },
   ],
 };

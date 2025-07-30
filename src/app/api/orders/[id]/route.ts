@@ -7,6 +7,12 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     const { id } = await params;
+    
+    if (!id) {
+      return NextResponse.json({ error: "Order ID is missing." }, {
+        status: 400,
+      });
+    }
 
     const { data, error } = await supabaseAdmin
       .from("orders")
@@ -21,7 +27,7 @@ export async function GET(
           partner_products ( id, partner_name, partner_description, thumbnail_url, partner_price, admin_product_id )
         ),
         shipping_details ( * ),
-        transactions ( * )
+        transactions!orders_primary_transaction_id_fkey ( * )
       `)
       .eq("id", id)
       .single();

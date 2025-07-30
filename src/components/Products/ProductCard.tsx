@@ -25,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleAddToCart = async () => {
     if (!userId) {
       toast.error("Please log in to add items to your cart.");
-      router.push("/login"); // Redirect to login page
+      router.push("/login");
       return;
     }
 
@@ -33,7 +33,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       await addOrUpdateCartItem({
         user_id: userId,
         partner_product_id: product.id,
-        quantity: 1, // Add one item at a time
+        quantity: 1,
       }).unwrap();
       toast.success(`${product.partner_name || "Product"} added to cart!`);
     } catch (error: unknown) {
@@ -90,7 +90,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <h2 className="text-xl font-bold text-gray-800 mb-1">{productName}</h2>
         <p className="text-sm text-gray-600 mb-2">By: {partnerName}</p>
         <p className="text-lg font-semibold text-primary mb-3">
-          ${product.partner_price.toFixed(2)}
+          £{product.partner_price.toFixed(2)}
         </p>
         <p
           className={`text-sm font-medium ${

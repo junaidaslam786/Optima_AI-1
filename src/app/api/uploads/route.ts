@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  const { data, error } = await supabaseAdmin.from("csv-uploads").select("*");
+  const { data, error } = await supabaseAdmin.from("uploads").select("*");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

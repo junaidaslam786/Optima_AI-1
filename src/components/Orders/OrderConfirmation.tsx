@@ -24,25 +24,22 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ orderId }) => {
     error,
   } = useGetOrderByIdQuery(orderId);
 
-  // Helper function to get the error message safely
   const getErrorMessage = (
     error: FetchBaseQueryError | SerializedError | undefined
   ): string => {
     if (!error) return "An unknown error occurred.";
 
     if ("status" in error) {
-      // This is a FetchBaseQueryError (e.g., from your API)
       if (
         typeof error.data === "object" &&
         error.data !== null &&
         "error" in error.data &&
         typeof error.data.error === "string"
       ) {
-        return error.data.error; // Assuming your API returns { error: "message" }
+        return error.data.error;
       }
       return `API Error: ${error.status}`;
     } else if ("message" in error) {
-      // This is a SerializedError
       return error.message || "An unexpected client-side error occurred.";
     }
     return "An unknown error occurred.";
@@ -50,7 +47,6 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ orderId }) => {
 
   useEffect(() => {
     if (isError) {
-      // No need to check 'error' here, as isError implies error exists
       toast.error(`Failed to load order details: ${getErrorMessage(error)}`);
     }
   }, [isError, error]);
@@ -107,7 +103,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ orderId }) => {
             {new Date(order.order_date).toLocaleDateString()}
           </p>
           <p className="text-gray-700">
-            <strong>Total Amount:</strong> ${order.total_amount.toFixed(2)}{" "}
+            <strong>Total Amount:</strong> {order.total_amount.toFixed(2)}{" "}
             {order.currency}
           </p>
           <p
@@ -207,7 +203,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ orderId }) => {
               </h3>
               <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
               <p className="text-md font-medium text-primary">
-                ${item.price_at_purchase.toFixed(2)} each
+                {item.price_at_purchase.toFixed(2)} each
               </p>
             </div>
             <p className="text-lg font-bold text-gray-900">

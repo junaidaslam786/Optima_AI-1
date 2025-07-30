@@ -118,7 +118,7 @@ export default function ProfilePage() {
                 </label>
                 <input
                   name="name"
-                  value={form.name}
+                  value={form.name || ""}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
@@ -134,7 +134,7 @@ export default function ProfilePage() {
                 <input
                   name="email"
                   type="email"
-                  value={form.email}
+                  value={form.email || ""}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
@@ -150,7 +150,7 @@ export default function ProfilePage() {
                 <input
                   name="dob"
                   type="date"
-                  value={form.dob}
+                  value={form.dob || ""}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
@@ -165,7 +165,7 @@ export default function ProfilePage() {
                 </label>
                 <input
                   name="address"
-                  value={form.address}
+                  value={form.address || ""}
                   onChange={handleChange}
                   disabled={!editing}
                   className={`w-full text-primary px-3 py-2 border rounded-lg focus:ring-2 focus:ring-secondary ${
@@ -201,7 +201,8 @@ export default function ProfilePage() {
           <div className="w-full bg-secondary/10 text-primary rounded-xl shadow p-6 max-w-sm">
             <h2 className="text-xl font-semibold mb-4">Subscription</h2>
             <p className="mb-1">
-              <span className="font-medium">Plan:</span> {user?.subscription}
+              <span className="font-medium">Plan:</span>{" "}
+              {user?.subscription || ""}
             </p>
           </div>
         </div>
