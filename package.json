@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.511.0",
+    "mammoth": "^1.9.1",
     "next": "^15.3.5",
     "next-auth": "^4.24.11",
     "openai": "^4.103.0",

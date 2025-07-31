@@ -2,7 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Image from "next/image";
 import { Navbar } from "@/components/Main/Navbar";
 import { Toaster } from "react-hot-toast";
@@ -15,8 +15,23 @@ const queryClient = new QueryClient();
 
 export default function ClientProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+
   const noHeaderPaths = ["/auth/signin", "/auth/signup"];
   const shouldShowHeader = !noHeaderPaths.includes(pathname);
+
+  useEffect(() => {
+    if (shouldShowHeader) {
+      const timer = setTimeout(() => {
+        setShowCookieBanner(true);
+      }, 7000);
+
+      return () => clearTimeout(timer);
+    } else {
+      setShowCookieBanner(false);
+    }
+  }, [shouldShowHeader, pathname]);
+
   return (
     <>
       <Toaster position="top-right" />
@@ -39,7 +54,7 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
                 </header>
                 <main className="w-full min-h-[100vh] pt-[14vh] flex flex-col lg:flex-row">
                   {children}
-                  <CookieConsentBanner />
+                  {showCookieBanner && <CookieConsentBanner />}
                 </main>
               </>
             ) : (

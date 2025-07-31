@@ -34,7 +34,6 @@ const BlogManagementDashboard: React.FC = () => {
     post: BlogPost | null;
   }>({ isOpen: false, post: null });
 
-  // Fetch blog posts with filters
   const {
     data: allPosts,
     isLoading: postsLoading,
@@ -46,7 +45,6 @@ const BlogManagementDashboard: React.FC = () => {
     offset: (currentPage - 1) * postsPerPage,
   });
 
-  // Fetch categories for filter dropdown
   const { data: categories, isLoading: categoriesLoading } =
     useGetBlogCategoriesQuery();
 
@@ -59,7 +57,6 @@ const BlogManagementDashboard: React.FC = () => {
     },
   ] = useDeleteBlogPostMutation();
 
-  // Filter posts by search term (client-side)
   const filteredPosts = React.useMemo(() => {
     if (!allPosts) return [];
     if (!searchTerm) return allPosts;
@@ -74,7 +71,6 @@ const BlogManagementDashboard: React.FC = () => {
     );
   }, [allPosts, searchTerm]);
 
-  // Handle search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       dispatch(setSearchTerm(localSearchTerm));
@@ -170,7 +166,7 @@ const BlogManagementDashboard: React.FC = () => {
         <h1 className="text-4xl font-extrabold text-primary mb-4 md:mb-0">
           Blog Management Dashboard
         </h1>
-        <Link href="/admin/blog/create">
+        <Link href="/admin/blogs/create">
           <Button variant="primary" className="flex items-center gap-2">
             <Plus size={16} />
             Create New Post
@@ -258,7 +254,7 @@ const BlogManagementDashboard: React.FC = () => {
                 : "No blog posts found. Create your first post!"}
             </p>
             {!searchTerm && !selectedCategorySlug && (
-              <Link href="/admin/blog/create" className="mt-4 inline-block">
+              <Link href="/admin/blogs/create" className="mt-4 inline-block">
                 <Button variant="primary">Create Your First Post</Button>
               </Link>
             )}
@@ -305,7 +301,7 @@ const BlogManagementDashboard: React.FC = () => {
                         <div className="flex gap-1">
                           {post.categories.map((category) => (
                             <span
-                              key={category.id}
+                              key={category.slug}
                               className="px-2 py-1 bg-primary/10 text-primary rounded-full"
                             >
                               {category.name}
@@ -317,7 +313,7 @@ const BlogManagementDashboard: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Link href={`/blog/${post.slug}`} target="_blank">
+                    <Link href={`/blogs/${post.slug}`} target="_blank">
                       <Button
                         variant="secondary"
                         size="sm"
@@ -327,7 +323,7 @@ const BlogManagementDashboard: React.FC = () => {
                         View
                       </Button>
                     </Link>
-                    <Link href={`/admin/blog/edit/${post.slug}`}>
+                    <Link href={`/admin/blogs/edit/${post.slug}`}>
                       <Button
                         variant="primary"
                         size="sm"
