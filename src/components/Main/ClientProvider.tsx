@@ -40,7 +40,7 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
           <SessionProvider>
             {shouldShowHeader ? (
               <>
-                <header className="fixed top-0 inset-x-0 h-[14vh] bg-primary/20 shadow z-50">
+                <header className="fixed top-0 inset-x-0 h-[14vh] bg-white shadow z-50">
                   <div className="mx-auto h-full px-[2vw] flex items-center justify-between">
                     <Image
                       src="/optima.png"

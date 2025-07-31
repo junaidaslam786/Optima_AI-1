@@ -17,6 +17,7 @@ const navData: Record<string, NavLink[]> = {
   guest: [
     { href: "/products", label: "Products" },
     { href: "/purchase", label: "Purchase a Test Kit" },
+    { href: "/blogs", label: "Blog" },
     {
       href: "#",
       label: "Legal",
@@ -43,6 +44,7 @@ const navData: Record<string, NavLink[]> = {
     { href: "/orders", label: "My Orders", authRequired: true },
     { href: "/reports", label: "Past Reports", authRequired: true },
     { href: "/purchase", label: "Purchase a Test Kit" },
+    { href: "/blogs", label: "Blog" },
     {
       href: "#",
       label: "Legal",
@@ -82,6 +84,7 @@ const navData: Record<string, NavLink[]> = {
     { href: "/partner/products", label: "Products", authRequired: true },
     { href: "/partner/orders", label: "Orders", authRequired: true },
     { href: "/partner/dashboard", label: "Dashboard", authRequired: true },
+    { href: "/blogs", label: "Blog" },
     {
       href: "#",
       label: "Profile",
@@ -93,6 +96,7 @@ const navData: Record<string, NavLink[]> = {
     { href: "/admin/dashboard", label: "Dashboard", authRequired: true },
     { href: "/admin/products", label: "Admin Products", authRequired: true },
     { href: "/admin/orders", label: "Orders", authRequired: true },
+    { href: "/admin/blogs/dashboard", label: "Blog" },
     {
       href: "#",
       label: "Uploads",

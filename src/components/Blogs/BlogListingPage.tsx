@@ -131,6 +131,9 @@ const BlogListingPage: React.FC = () => {
                   src={post.featured_image_url}
                   alt={post.title}
                   className="w-full h-48 object-cover rounded-md mb-4"
+                  width={400}
+                  height={200}
+                  unoptimized
                 />
               )}
               <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
