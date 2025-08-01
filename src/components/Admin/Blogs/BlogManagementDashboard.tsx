@@ -161,7 +161,7 @@ const BlogManagementDashboard: React.FC = () => {
   const totalPages = Math.ceil((filteredPosts?.length || 0) / postsPerPage);
 
   return (
-    <div className="w-full container mx-auto p-8 bg-secondary/30 min-h-screen">
+    <div className="w-full container mx-auto p-8 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <h1 className="text-4xl font-extrabold text-primary mb-4 md:mb-0">
           Blog Management Dashboard
@@ -323,7 +323,7 @@ const BlogManagementDashboard: React.FC = () => {
                         View
                       </Button>
                     </Link>
-                    <Link href={`/admin/blogs/edit/${post.slug}`}>
+                    <Link href={`/admin/blogs/${post.slug}`}>
                       <Button
                         variant="primary"
                         size="sm"

@@ -270,7 +270,7 @@ const BlogCategoriesManagement: React.FC = () => {
   }
 
   return (
-    <div className="w-full container mx-auto p-8 bg-secondary/30 min-h-screen">
+    <div className="w-full container mx-auto p-8 min-h-screen">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <h1 className="text-4xl font-extrabold text-primary mb-4 md:mb-0">

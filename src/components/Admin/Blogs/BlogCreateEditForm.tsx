@@ -51,8 +51,8 @@ const BlogCreateEditForm: React.FC = () => {
     title: "",
     slug: "",
     excerpt: "",
-    content_path: "", // Holds the URL for existing posts
-    content_file: null, // Holds the File object from input
+    content_path: "",
+    content_file: null,
     author_id: "",
     published_at: new Date().toISOString().slice(0, 16),
     is_published: false,
@@ -294,7 +294,7 @@ const BlogCreateEditForm: React.FC = () => {
 
   if (loadingPost || categoriesLoading) {
     return (
-      <div className="w-full flex justify-center items-center p-8 bg-secondary/30 border border-secondary text-secondary rounded-lg mx-auto min-h-[400px]">
+      <div className="w-full flex justify-center items-center p-8 border border-secondary text-secondary rounded-lg mx-auto min-h-[400px]">
         <LoadingSpinner />
         <p className="ml-2 text-secondary">
           {loadingPost ? "Loading blog post..." : "Loading form data..."}
@@ -589,7 +589,7 @@ const BlogCreateEditForm: React.FC = () => {
 
         {/* SEO Section */}
         <div className="bg-white shadow-xl rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-row justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
               <Globe size={20} />
               SEO Settings
@@ -677,8 +677,8 @@ const BlogCreateEditForm: React.FC = () => {
                 type="button"
                 variant="secondary"
                 onClick={(e) => {
-                  setFormData((prev) => ({ ...prev, is_published: false })); // Ensure not published for draft
-                  const formEvent = e as unknown as React.FormEvent; // Type assertion for submit
+                  setFormData((prev) => ({ ...prev, is_published: false }));
+                  const formEvent = e as unknown as React.FormEvent;
                   handleSubmit(formEvent);
                 }}
                 isLoading={isCreating || isUpdating}
@@ -702,7 +702,7 @@ const BlogCreateEditForm: React.FC = () => {
                   : "Create & Publish"
                 : isEdit
                 ? "Update Draft"
-                : "Save Draft"}
+                : "Save & Publish"}
             </Button>
           </div>
         </div>

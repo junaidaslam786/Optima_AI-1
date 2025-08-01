@@ -3,9 +3,9 @@ import React from "react";
 
 const BlogsPage = () => {
   return (
-    <>
+    <div className="w-full bg-secondary/30">
       <BlogListingPage />
-    </>
+    </div>
   );
 };
 

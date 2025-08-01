@@ -23,7 +23,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary:
-      "w-full py-3 bg-primary hover:bg-secondary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-primary transition disabled:opacity-50",
+      "py-3 bg-primary hover:bg-secondary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-primary transition disabled:opacity-50",
     secondary:
       "bg-secondary hover:bg-tertiary text-white font-medium py-2 px-6 rounded-full transition",
     danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
