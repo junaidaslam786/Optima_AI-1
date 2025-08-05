@@ -30,11 +30,11 @@ const ForgotPasswordForm: React.FC = () => {
       toast.success(response.message);
       setMessage(response.message);
       setEmail("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Forgot password error:", error);
       const errorMessage =
-        error?.data?.error ||
-        error?.message ||
+        (error as { data?: { error?: string }; message?: string })?.data?.error ||
+        (error as { message?: string })?.message ||
         "Failed to send reset email. Please try again.";
       toast.error(errorMessage);
       setMessage(errorMessage);
