@@ -2,12 +2,12 @@ import "./globals.css";
 import { ReactNode } from "react";
 import ClientProvider from "@/components/Main/ClientProvider";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
-import { Poppins } from "next/font/google";
+import { Montserrat } from "next/font/google";
 
-const poppins = Poppins({
+const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-poppins",
+  variable: "--font-montserrat",
   display: "swap",
 });
 
@@ -22,7 +22,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <html lang="en" className={poppins.variable}>
+      <html lang="en" className={montserrat.variable}>
         <body className="min-h-screen">
           <ClientProvider>{children}</ClientProvider>
         </body>

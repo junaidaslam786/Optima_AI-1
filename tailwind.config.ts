@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import typography from '@tailwindcss/typography';
 
 export default {
   content: [
@@ -12,10 +13,14 @@ export default {
         primary:   "rgb(var(--color-primary-rgb))",
         secondary: "rgb(var(--color-secondary-rgb))",
         tertiary:  "rgb(var(--color-tertiary-rgb))",
-      }
+      },
+      fontFamily: {
+        sans: ['var(--font-montserrat)', 'sans-serif'],
+        montserrat: ['var(--font-montserrat)', 'sans-serif'],
+      },
     },
   },
   plugins: [
-    require('@tailwindcss/typography'),
+    typography,
   ],
 } satisfies Config;
