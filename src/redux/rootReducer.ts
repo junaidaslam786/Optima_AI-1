@@ -38,8 +38,11 @@ import userConsentsReducer from "./features/userConsents/userConsentsSlice";
 import { userConsentsApi } from "./features/userConsents/userConsentsApi";
 import usersReducer from "./features/users/usersSlice";
 import { usersApi } from "./features/users/usersApi";
+import authReducer from "./features/auth/authSlice";
+import { authApi } from "./features/auth/authApi";
 
 const rootReducer = combineReducers({
+  [authApi.reducerPath]: authApi.reducer,
   [adminProductsApi.reducerPath]: adminProductsApi.reducer,
   [blogCategoriesApi.reducerPath]: blogCategoriesApi.reducer,
   [blogPostsApi.reducerPath]: blogPostsApi.reducer,
@@ -61,6 +64,7 @@ const rootReducer = combineReducers({
   [userConsentsApi.reducerPath]: userConsentsApi.reducer,
   [usersApi.reducerPath]: usersApi.reducer,
 
+  auth: authReducer,
   adminProducts: adminProductsReducer,
   blogCategoriesUI: blogCategoriesReducer,
   blogPostsUI: blogPostsReducer,

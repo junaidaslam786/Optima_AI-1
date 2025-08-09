@@ -60,12 +60,12 @@ export default function SigninPage() {
       <div className="w-full md:w-1/2 bg-primary text-white rounded-l-xl p-10 flex flex-col justify-center">
         <h2 className="text-3xl font-bold mb-4">Don&apos;t have an account?</h2>
         <p className="mb-6">
-          Purchase one of our kits and we will send you access details so you
-          can log into our dashboard.
+          Join our platform today and get access to our comprehensive health
+          monitoring dashboard.
         </p>
-        <Link href="/purchase">
+        <Link href="/auth/signup">
           <button className="mt-auto bg-secondary hover:bg-tertiary text-white font-medium py-2 px-6 rounded-full transition">
-            Purchase
+            Create an account
           </button>
         </Link>
       </div>
@@ -108,6 +108,12 @@ export default function SigninPage() {
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
+          </div>
+
+          <div className="text-left">
+            <Link href="/auth/forgot-password" className="text-primary hover:text-secondary text-sm font-medium transition">
+              Forgot Password?
+            </Link>
           </div>
 
           {error && (

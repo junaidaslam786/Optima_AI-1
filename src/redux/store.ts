@@ -21,11 +21,13 @@ import { transactionsApi } from "./features/transactions/transactionsApi";
 import { uploadsApi } from "./features/uploads/uploadsApi";
 import { userConsentsApi } from "./features/userConsents/userConsentsApi";
 import { usersApi } from "./features/users/usersApi";
+import { authApi } from "./features/auth/authApi";
 
 export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
+      authApi.middleware,
       adminProductsApi.middleware,
       blogCategoriesApi.middleware,
       blogPostsApi.middleware,
