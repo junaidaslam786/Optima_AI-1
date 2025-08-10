@@ -1,3 +1,6 @@
+-- Complete Database Schema
+-- This file contains all tables, triggers, and functions for the application
+
 -- 1) Enable pgcrypto
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -23,8 +26,7 @@ VALUES (
     '$2b$10$gEE2s91KtQ7bnlUkDpyYeOh2Q/LQBjAsKdw5TP0olSc2GkUnb7jpC',
     'John Doe',
     'admin'
-)
-ON CONFLICT (email) DO NOTHING; -- Prevents error if run multiple times
+);
 GRANT SELECT, INSERT, UPDATE ON public.users TO anon, service_role;
 
 -- 3) Categories
@@ -42,7 +44,7 @@ CREATE TABLE public.panels (
     id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     name          TEXT          NOT NULL,
     description   TEXT,
-    category_id   UUID          REFERENCES public.categories(id) ON DELETE SET NULL, -- Updated reference
+    category_id   UUID          REFERENCES public.categories(id) ON DELETE SET NULL,
     created_at    timestamp   NOT NULL DEFAULT now(),
     updated_at    timestamp   NOT NULL DEFAULT now()
 );
@@ -59,7 +61,7 @@ CREATE TABLE public.uploads (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.uploads TO anon, service_role;
 
--- 6) Markers (Modified)
+-- 6) Markers
 CREATE TABLE public.markers (
     id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     panel_id      UUID          NOT NULL REFERENCES public.panels(id) ON DELETE CASCADE,
@@ -72,7 +74,7 @@ CREATE TABLE public.markers (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.markers TO anon, service_role;
 
--- 7) Patient Marker Values (New Table)
+-- 7) Patient Marker Values
 CREATE TABLE public.patient_marker_values (
     id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     csvfile_id    UUID          NOT NULL REFERENCES public.uploads(id) ON DELETE CASCADE,
@@ -97,7 +99,7 @@ CREATE TABLE public.pdf_reports (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.pdf_reports TO anon, service_role;
 
---- NEW E-COMMERCE TABLES ---
+--- E-COMMERCE TABLES ---
 
 -- 9) Partner Profiles
 CREATE TABLE public.partner_profiles (
@@ -120,14 +122,31 @@ CREATE TABLE public.partner_profiles (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.partner_profiles TO anon, service_role;
 
--- 10) Admin Products (Base Products) (Modified)
+-- 10) Transactions (Moved up due to foreign key dependencies)
+CREATE TABLE public.transactions (
+    id                    UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id              UUID, -- Will be updated after orders table is created
+    user_id               UUID          NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+    transaction_amount    NUMERIC       NOT NULL,
+    currency              TEXT          NOT NULL DEFAULT 'GBP',
+    payment_gateway       TEXT          NOT NULL, -- e.g., 'Stripe', 'PayPal', 'Square'
+    gateway_transaction_id TEXT         UNIQUE, -- ID from the payment gateway
+    transaction_status    TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'succeeded', 'failed', 'refunded'
+    transaction_type      TEXT          NOT NULL DEFAULT 'sale', -- 'sale', 'refund', 'authorization'
+    error_message         TEXT,
+    created_at            timestamp   NOT NULL DEFAULT now(),
+    updated_at            timestamp   NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE ON public.transactions TO anon, service_role;
+
+-- 11) Admin Products (Base Products)
 CREATE TABLE public.admin_products (
     id                       UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     name                     TEXT          NOT NULL,
     description              TEXT,
     base_price               NUMERIC       NOT NULL,
     sku                      TEXT          UNIQUE,
-    category_ids             UUID[],        -- Array of categories.id (Updated reference)
+    category_ids             UUID[],        -- Array of categories.id
     intended_use             TEXT,
     test_type                VARCHAR(100),
     marker_ids               UUID[],
@@ -142,7 +161,7 @@ CREATE TABLE public.admin_products (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admin_products TO anon, service_role;
 
--- 11) Partner Products (Partner's custom listings of admin products) (Modified)
+-- 12) Partner Products (Partner's custom listings of admin products)
 CREATE TABLE public.partner_products (
     id                     UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     partner_id             UUID          NOT NULL REFERENCES public.partner_profiles(id) ON DELETE CASCADE,
@@ -160,16 +179,16 @@ CREATE TABLE public.partner_products (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.partner_products TO anon, service_role;
 
--- 12) Carts (Modified to link directly to user_id)
+-- 13) Carts
 CREATE TABLE public.carts (
     id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id       UUID          NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE, -- Must be linked to a user
+    user_id       UUID          NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE,
     created_at    timestamp   NOT NULL DEFAULT now(),
     updated_at    timestamp   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.carts TO anon, service_role;
 
--- 13) Cart Items
+-- 14) Cart Items
 CREATE TABLE public.cart_items (
     id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     cart_id           UUID          NOT NULL REFERENCES public.carts(id) ON DELETE CASCADE,
@@ -182,12 +201,12 @@ CREATE TABLE public.cart_items (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.cart_items TO anon, service_role;
 
--- 14) Orders (Modified to simplify address/payment fields, relying on new tables)
+-- 15) Orders
 CREATE TABLE public.orders (
     id                      UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_user_id        UUID          NOT NULL    REFERENCES public.users(id) ON DELETE RESTRICT,
     partner_id              UUID          NOT NULL    REFERENCES public.partner_profiles(id) ON DELETE RESTRICT,
-    primary_transaction_id  UUID          UNIQUE      REFERENCES public.transactions(id), -- Added UNIQUE constraint for 1:1 with primary transaction
+    primary_transaction_id  UUID          NOT NULL    REFERENCES public.transactions(id),
     order_date              timestamp     NOT NULL    DEFAULT now(),
     total_amount            NUMERIC       NOT NULL,
     currency                TEXT          NOT NULL    DEFAULT 'GBP',
@@ -198,7 +217,16 @@ CREATE TABLE public.orders (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.orders TO anon, service_role;
 
--- 15) Order Items
+-- Add foreign key constraint to transactions table
+ALTER TABLE public.transactions 
+ADD CONSTRAINT fk_transactions_order_id 
+FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+-- Add unique constraint to transactions.order_id
+ALTER TABLE public.transactions 
+ADD CONSTRAINT unique_transaction_order_id UNIQUE (order_id);
+
+-- 16) Order Items
 CREATE TABLE public.order_items (
     id                      UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id                UUID          NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -211,23 +239,6 @@ CREATE TABLE public.order_items (
     updated_at              timestamp   NOT NULL DEFAULT now()
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.order_items TO anon, service_role;
-
--- 16) Transactions
-CREATE TABLE public.transactions (
-    id                    UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id              UUID          NOT NULL UNIQUE REFERENCES public.orders(id) ON DELETE CASCADE, -- Each order has one primary transaction
-    user_id               UUID          NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
-    transaction_amount    NUMERIC       NOT NULL,
-    currency              TEXT          NOT NULL DEFAULT 'GBP',
-    payment_gateway       TEXT          NOT NULL, -- e.g., 'Stripe', 'PayPal', 'Square'
-    gateway_transaction_id TEXT         UNIQUE, -- ID from the payment gateway
-    transaction_status    TEXT          NOT NULL DEFAULT 'pending', -- 'pending', 'succeeded', 'failed', 'refunded'
-    transaction_type      TEXT          NOT NULL DEFAULT 'sale', -- 'sale', 'refund', 'authorization'
-    error_message         TEXT,
-    created_at            timestamp   NOT NULL DEFAULT now(),
-    updated_at            timestamp   NOT NULL DEFAULT now()
-);
-GRANT SELECT, INSERT, UPDATE ON public.transactions TO anon, service_role;
 
 -- 17) Shipping Details
 CREATE TABLE public.shipping_details (
@@ -253,7 +264,7 @@ CREATE TABLE public.shipping_details (
 );
 GRANT SELECT, INSERT, UPDATE ON public.shipping_details TO anon, service_role;
 
---- NEW TABLES FOR BLOG & CONSENT ---
+--- BLOG TABLES ---
 
 -- 18) Blog Posts
 CREATE TABLE public.blog_posts (
@@ -296,7 +307,7 @@ GRANT SELECT, INSERT, DELETE ON public.post_category_junction TO anon, service_r
 -- 21) User Consents
 CREATE TABLE public.user_consents (
     id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id             UUID         REFERENCES public.users(id) ON DELETE CASCADE, -- Link to the user who gave consent
+    user_id             UUID          NOT NULL REFERENCES public.users(id) ON DELETE CASCADE, -- Link to the user who gave consent
     consent_timestamp   timestamp     NOT NULL DEFAULT now(), -- When consent was given/revoked
     consent_version     TEXT          NOT NULL, -- e.g., '1.0', '1.1' - to track changes in policy
     consent_type        TEXT          NOT NULL, -- e.g., 'cookies', 'terms_and_conditions', 'privacy_policy'
@@ -307,13 +318,14 @@ CREATE TABLE public.user_consents (
     created_at          timestamp   NOT NULL DEFAULT now(),
     updated_at          timestamp   NOT NULL DEFAULT now()
 );
+
 CREATE INDEX idx_user_consents_user_id ON public.user_consents (user_id);
 CREATE INDEX idx_user_consents_consent_type ON public.user_consents (consent_type);
-GRANT SELECT, INSERT ON public.user_consents TO anon, service_role;
-GRANT UPDATE ON public.user_consents TO service_role;
 
+GRANT SELECT, INSERT ON public.user_consents TO anon, service_role; -- Users need to insert their consent
+GRANT UPDATE ON public.user_consents TO service_role; -- Admin can update, but users should only insert new revocation records
 
---- Triggers & functions for updated_at timestamps ---
+--- TRIGGERS & FUNCTIONS FOR UPDATED_AT TIMESTAMPS ---
 
 -- users
 DROP TRIGGER IF EXISTS trg_users_updated_at ON public.users;
@@ -585,10 +597,10 @@ CREATE TRIGGER trg_user_consents_updated_at
   FOR EACH ROW
   EXECUTE PROCEDURE public.set_updated_at_user_consents();
 
---- NEW: Trigger for auto-populating partner_name and partner_description ---
+--- SPECIAL TRIGGERS ---
 
--- Function to automatically set partner_product_defaults
-DROP FUNCTION IF EXISTS public.set_partner_product_defaults(); -- Drop if exists for clean update
+-- Trigger for auto-populating partner_name and partner_description
+DROP FUNCTION IF EXISTS public.set_partner_product_defaults();
 CREATE OR REPLACE FUNCTION public.set_partner_product_defaults()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -622,8 +634,344 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger to call the function before inserting into partner_products
-DROP TRIGGER IF EXISTS set_partner_product_defaults_trigger ON public.partner_products; -- Drop if exists for clean update
+DROP TRIGGER IF EXISTS set_partner_product_defaults_trigger ON public.partner_products;
 CREATE TRIGGER set_partner_product_defaults_trigger
 BEFORE INSERT ON public.partner_products
 FOR EACH ROW
 EXECUTE FUNCTION public.set_partner_product_defaults();
+
+--- ROW LEVEL SECURITY (RLS) POLICIES ---
+
+-- Enable RLS on all tables
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.panels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.markers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patient_marker_values ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pdf_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partner_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partner_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.carts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shipping_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_post_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_category_junction ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_consents ENABLE ROW LEVEL SECURITY;
+
+-- Helper function to get current user role
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS TEXT AS $
+BEGIN
+  RETURN (
+    SELECT role 
+    FROM public.users 
+    WHERE id = auth.uid()
+  );
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function to check if user is admin
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $
+BEGIN
+  RETURN (
+    SELECT role = 'admin' 
+    FROM public.users 
+    WHERE id = auth.uid()
+  );
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function to check if user is partner
+CREATE OR REPLACE FUNCTION public.is_partner()
+RETURNS BOOLEAN AS $
+BEGIN
+  RETURN (
+    SELECT role = 'partner' 
+    FROM public.users 
+    WHERE id = auth.uid()
+  );
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function to get partner profile ID for current user
+CREATE OR REPLACE FUNCTION public.get_partner_id()
+RETURNS UUID AS $
+BEGIN
+  RETURN (
+    SELECT id 
+    FROM public.partner_profiles 
+    WHERE user_id = auth.uid()
+  );
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+--- USERS TABLE RLS ---
+-- Users can view their own profile, admins can view all
+CREATE POLICY "Users can view own profile" ON public.users
+  FOR SELECT USING (auth.uid() = id OR public.is_admin());
+
+-- Users can update their own profile, admins can update all
+CREATE POLICY "Users can update own profile" ON public.users
+  FOR UPDATE USING (auth.uid() = id OR public.is_admin());
+
+-- Only admins can insert users (registration handled separately)
+CREATE POLICY "Only admins can insert users" ON public.users
+  FOR INSERT WITH CHECK (public.is_admin());
+
+--- CATEGORIES TABLE RLS ---
+-- Everyone can read categories
+CREATE POLICY "Categories are publicly readable" ON public.categories
+  FOR SELECT USING (true);
+
+-- Only admins can modify categories
+CREATE POLICY "Only admins can modify categories" ON public.categories
+  FOR ALL USING (public.is_admin());
+
+--- PANELS TABLE RLS ---
+-- Everyone can read panels
+CREATE POLICY "Panels are publicly readable" ON public.panels
+  FOR SELECT USING (true);
+
+-- Only admins can modify panels
+CREATE POLICY "Only admins can modify panels" ON public.panels
+  FOR ALL USING (public.is_admin());
+
+--- UPLOADS TABLE RLS ---
+-- Users can view their own uploads or uploads they're associated with
+CREATE POLICY "Users can view own uploads" ON public.uploads
+  FOR SELECT USING (
+    auth.uid() = admin_user_id OR 
+    auth.uid() = client_user_id OR 
+    public.is_admin()
+  );
+
+-- Admins can insert uploads, clients can be assigned uploads
+CREATE POLICY "Admins can manage uploads" ON public.uploads
+  FOR ALL USING (public.is_admin());
+
+--- MARKERS TABLE RLS ---
+-- Everyone can read markers
+CREATE POLICY "Markers are publicly readable" ON public.markers
+  FOR SELECT USING (true);
+
+-- Only admins can modify markers
+CREATE POLICY "Only admins can modify markers" ON public.markers
+  FOR ALL USING (public.is_admin());
+
+--- PATIENT MARKER VALUES TABLE RLS ---
+-- Users can view their own marker values, admins can view all
+CREATE POLICY "Users can view own marker values" ON public.patient_marker_values
+  FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+
+-- Only admins can insert marker values
+CREATE POLICY "Only admins can insert marker values" ON public.patient_marker_values
+  FOR INSERT WITH CHECK (public.is_admin());
+
+-- Admins can update/delete marker values
+CREATE POLICY "Only admins can modify marker values" ON public.patient_marker_values
+  FOR UPDATE USING (public.is_admin());
+
+CREATE POLICY "Only admins can delete marker values" ON public.patient_marker_values
+  FOR DELETE USING (public.is_admin());
+
+--- PDF REPORTS TABLE RLS ---
+-- Users can view their own reports, admins can view all
+CREATE POLICY "Users can view own reports" ON public.pdf_reports
+  FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+
+-- Only admins can manage reports
+CREATE POLICY "Only admins can manage reports" ON public.pdf_reports
+  FOR ALL USING (public.is_admin());
+
+--- PARTNER PROFILES TABLE RLS ---
+-- Partners can view their own profile, admins can view all
+CREATE POLICY "Partners can view own profile" ON public.partner_profiles
+  FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+
+-- Partners can update their own profile (except approval status), admins can update all
+CREATE POLICY "Partners can update own profile" ON public.partner_profiles
+  FOR UPDATE USING (
+    (auth.uid() = user_id AND partner_status = OLD.partner_status) OR 
+    public.is_admin()
+  );
+
+-- Anyone can apply to be a partner
+CREATE POLICY "Anyone can apply as partner" ON public.partner_profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+--- ADMIN PRODUCTS TABLE RLS ---
+-- Everyone can read admin products
+CREATE POLICY "Admin products are publicly readable" ON public.admin_products
+  FOR SELECT USING (true);
+
+-- Only admins can modify admin products
+CREATE POLICY "Only admins can modify admin products" ON public.admin_products
+  FOR ALL USING (public.is_admin());
+
+--- PARTNER PRODUCTS TABLE RLS ---
+-- Everyone can read active partner products
+CREATE POLICY "Active partner products are publicly readable" ON public.partner_products
+  FOR SELECT USING (is_active = true OR auth.uid() IN (
+    SELECT user_id FROM public.partner_profiles WHERE id = partner_id
+  ) OR public.is_admin());
+
+-- Partners can manage their own products
+CREATE POLICY "Partners can manage own products" ON public.partner_products
+  FOR ALL USING (
+    auth.uid() IN (
+      SELECT user_id FROM public.partner_profiles WHERE id = partner_id
+    ) OR public.is_admin()
+  );
+
+--- CARTS TABLE RLS ---
+-- Users can only access their own cart
+CREATE POLICY "Users can access own cart" ON public.carts
+  FOR ALL USING (auth.uid() = user_id);
+
+--- CART ITEMS TABLE RLS ---
+-- Users can only access items in their own cart
+CREATE POLICY "Users can access own cart items" ON public.cart_items
+  FOR ALL USING (
+    auth.uid() IN (
+      SELECT user_id FROM public.carts WHERE id = cart_id
+    )
+  );
+
+--- ORDERS TABLE RLS ---
+-- Customers can view their own orders, partners can view orders for their products, admins can view all
+CREATE POLICY "Users can view relevant orders" ON public.orders
+  FOR SELECT USING (
+    auth.uid() = customer_user_id OR
+    auth.uid() IN (
+      SELECT user_id FROM public.partner_profiles WHERE id = partner_id
+    ) OR
+    public.is_admin()
+  );
+
+-- Only customers can create orders for themselves
+CREATE POLICY "Customers can create own orders" ON public.orders
+  FOR INSERT WITH CHECK (auth.uid() = customer_user_id);
+
+-- Partners can update their orders (status changes), admins can update all
+CREATE POLICY "Partners and admins can update orders" ON public.orders
+  FOR UPDATE USING (
+    auth.uid() IN (
+      SELECT user_id FROM public.partner_profiles WHERE id = partner_id
+    ) OR public.is_admin()
+  );
+
+--- ORDER ITEMS TABLE RLS ---
+-- Users can view order items for orders they have access to
+CREATE POLICY "Users can view accessible order items" ON public.order_items
+  FOR SELECT USING (
+    auth.uid() IN (
+      SELECT customer_user_id FROM public.orders WHERE id = order_id
+    ) OR
+    auth.uid() IN (
+      SELECT pp.user_id FROM public.partner_profiles pp
+      JOIN public.orders o ON pp.id = o.partner_id
+      WHERE o.id = order_id
+    ) OR
+    public.is_admin()
+  );
+
+-- Only admins can modify order items
+CREATE POLICY "Only admins can modify order items" ON public.order_items
+  FOR ALL USING (public.is_admin());
+
+--- TRANSACTIONS TABLE RLS ---
+-- Users can view their own transactions, partners can view transactions for their orders, admins can view all
+CREATE POLICY "Users can view relevant transactions" ON public.transactions
+  FOR SELECT USING (
+    auth.uid() = user_id OR
+    auth.uid() IN (
+      SELECT pp.user_id FROM public.partner_profiles pp
+      JOIN public.orders o ON pp.id = o.partner_id
+      WHERE o.id = order_id
+    ) OR
+    public.is_admin()
+  );
+
+-- Only service can insert transactions (payment processing)
+CREATE POLICY "Only service can create transactions" ON public.transactions
+  FOR INSERT WITH CHECK (auth.role() = 'service_role' OR public.is_admin());
+
+-- Only admins and service can update transactions
+CREATE POLICY "Only service and admins can update transactions" ON public.transactions
+  FOR UPDATE USING (auth.role() = 'service_role' OR public.is_admin());
+
+--- SHIPPING DETAILS TABLE RLS ---
+-- Same access as orders
+CREATE POLICY "Users can view relevant shipping details" ON public.shipping_details
+  FOR SELECT USING (
+    auth.uid() IN (
+      SELECT customer_user_id FROM public.orders WHERE id = order_id
+    ) OR
+    auth.uid() IN (
+      SELECT pp.user_id FROM public.partner_profiles pp
+      JOIN public.orders o ON pp.id = o.partner_id
+      WHERE o.id = order_id
+    ) OR
+    public.is_admin()
+  );
+
+-- Partners and admins can update shipping details
+CREATE POLICY "Partners and admins can update shipping" ON public.shipping_details
+  FOR ALL USING (
+    auth.uid() IN (
+      SELECT pp.user_id FROM public.partner_profiles pp
+      JOIN public.orders o ON pp.id = o.partner_id
+      WHERE o.id = order_id
+    ) OR public.is_admin()
+  );
+
+--- BLOG POSTS TABLE RLS ---
+-- Everyone can read published blog posts
+CREATE POLICY "Published blog posts are publicly readable" ON public.blog_posts
+  FOR SELECT USING (is_published = true OR public.is_admin());
+
+-- Only admins can manage blog posts
+CREATE POLICY "Only admins can manage blog posts" ON public.blog_posts
+  FOR ALL USING (public.is_admin());
+
+--- BLOG POST CATEGORIES TABLE RLS ---
+-- Everyone can read blog categories
+CREATE POLICY "Blog categories are publicly readable" ON public.blog_post_categories
+  FOR SELECT USING (true);
+
+-- Only admins can modify blog categories
+CREATE POLICY "Only admins can modify blog categories" ON public.blog_post_categories
+  FOR ALL USING (public.is_admin());
+
+--- POST CATEGORY JUNCTION TABLE RLS ---
+-- Everyone can read the junction (for published posts)
+CREATE POLICY "Post category junction is publicly readable" ON public.post_category_junction
+  FOR SELECT USING (
+    post_id IN (
+      SELECT id FROM public.blog_posts WHERE is_published = true
+    ) OR public.is_admin()
+  );
+
+-- Only admins can modify the junction
+CREATE POLICY "Only admins can modify post category junction" ON public.post_category_junction
+  FOR ALL USING (public.is_admin());
+
+--- USER CONSENTS TABLE RLS ---
+-- Users can view their own consents, admins can view all
+CREATE POLICY "Users can view own consents" ON public.user_consents
+  FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+
+-- Users can insert their own consents
+CREATE POLICY "Users can insert own consents" ON public.user_consents
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Only admins can update consents (for audit purposes)
+CREATE POLICY "Only admins can update consents" ON public.user_consents
+  FOR UPDATE USING (public.is_admin());

@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { PartnerProduct } from "@/redux/features/partnerProducts/partnerProductsTypes";
 import { ShoppingCart } from "lucide-react";
@@ -15,7 +14,6 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, isLoading: isAddingToCart } = useCart();
-  const router = useRouter();
 
   const thumbnailUrl =
     product.thumbnail_url ||
@@ -29,14 +27,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.stopPropagation();
 
     await addToCart(product.id, 1, productName);
-  };
-
-  const handleBuyNow = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    await addToCart(product.id, 1, productName);
-    router.push('/checkout');
   };
 
   return (
@@ -119,13 +109,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {!isAddingToCart && <ShoppingCart className="w-5 h-5" />}
             </Button>
           </div>
-          <Button
-            onClick={handleBuyNow}
-            disabled={!product.is_active}
-            className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200"
-          >
-            Buy Now
-          </Button>
         </div>
       </div>
     </div>

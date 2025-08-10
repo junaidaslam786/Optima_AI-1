@@ -8,23 +8,54 @@ import {
   getGuestCart, 
   updateGuestCartQuantity,
   removeFromGuestCart,
-  getGuestCartItemCount 
+  getGuestCartItemCount,
+  validateGuestCart,
+  transferGuestCartToUser
 } from '@/lib/guestCart';
 import toast from 'react-hot-toast';
 
 export const useCart = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const userId = session?.user?.id;
   const [guestCartCount, setGuestCartCount] = useState(0);
+  const [isTransferring, setIsTransferring] = useState(false);
   
   const [addOrUpdateCartItem, { isLoading: isAddingToCart }] = useAddOrUpdateCartItemMutation();
 
   // Update guest cart count when component mounts or cart changes
   useEffect(() => {
+    if (status === 'loading') return; // Wait for session to load
+    
     if (!userId) {
+      // Validate and get guest cart count
+      validateGuestCart();
       setGuestCartCount(getGuestCartItemCount());
     }
-  }, [userId]);
+  }, [userId, status]);
+
+  // Separate effect for guest cart transfer to avoid dependency issues
+  useEffect(() => {
+    if (status === 'loading' || !userId || isTransferring) return;
+    
+    const guestCart = getGuestCart();
+    if (guestCart.items.length === 0) return;
+
+    const transferCart = async () => {
+      setIsTransferring(true);
+      try {
+        await transferGuestCartToUser(userId);
+        toast.success('Cart items transferred to your account!');
+        setGuestCartCount(0);
+      } catch (error) {
+        console.error('Failed to transfer guest cart:', error);
+        toast.error('Failed to transfer cart items. Please try again.');
+      } finally {
+        setIsTransferring(false);
+      }
+    };
+
+    transferCart();
+  }, [userId, status, isTransferring]);
 
   const addToCart = async (productId: string, quantity: number = 1, productName?: string) => {
     try {
@@ -36,7 +67,7 @@ export const useCart = () => {
           quantity,
         }).unwrap();
       } else {
-        // Guest user - use local storage
+        // Guest user - use cookies
         addToGuestCart(productId, quantity);
         setGuestCartCount(getGuestCartItemCount());
       }
@@ -65,7 +96,7 @@ export const useCart = () => {
           }).unwrap();
         }
       } else {
-        // Guest user - use local storage
+        // Guest user - use cookies
         updateGuestCartQuantity(productId, quantity);
         setGuestCartCount(getGuestCartItemCount());
       }
@@ -84,7 +115,7 @@ export const useCart = () => {
         // TODO: Implement remove from user cart API
         console.log('Remove from user cart:', productId);
       } else {
-        // Guest user - use local storage
+        // Guest user - use cookies
         removeFromGuestCart(productId);
         setGuestCartCount(getGuestCartItemCount());
       }
@@ -103,7 +134,7 @@ export const useCart = () => {
       // TODO: Return user cart data from API
       return { items: [], count: 0 };
     } else {
-      const guestCart = getGuestCart();
+      const guestCart = validateGuestCart();
       return {
         items: guestCart.items,
         count: guestCartCount,
@@ -112,13 +143,22 @@ export const useCart = () => {
     }
   };
 
+  const refreshCart = () => {
+    if (!userId) {
+      setGuestCartCount(getGuestCartItemCount());
+    }
+    // TODO: Add refresh for user cart when API is implemented
+  };
+
   return {
     addToCart,
     updateCartQuantity,
     removeFromCart,
     getCartData,
-    isLoading: isAddingToCart,
+    refreshCart,
+    isLoading: isAddingToCart || isTransferring,
     isLoggedIn: !!userId,
     cartCount: userId ? 0 : guestCartCount, // TODO: Get actual user cart count from API
+    isTransferring,
   };
 };

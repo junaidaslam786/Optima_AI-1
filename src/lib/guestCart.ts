@@ -1,3 +1,5 @@
+import Cookies from 'js-cookie';
+
 // Guest cart utilities for managing cart items in cookies
 export interface GuestCartItem {
   partner_product_id: string;
@@ -11,6 +13,14 @@ export interface GuestCart {
   created_at: string;
   updated_at: string;
 }
+
+// Cookie configuration
+const CART_COOKIE_NAME = 'guest_cart';
+const CART_COOKIE_OPTIONS = {
+  expires: 30, // 30 days
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+};
 
 // Generate a unique guest ID
 export const generateGuestId = (): string => {
@@ -29,12 +39,18 @@ export const getGuestCart = (): GuestCart => {
   }
 
   try {
-    const cartData = localStorage.getItem('guest_cart');
+    const cartData = Cookies.get(CART_COOKIE_NAME);
     if (cartData) {
-      return JSON.parse(cartData);
+      const parsed = JSON.parse(cartData);
+      // Validate the cart data structure
+      if (parsed && parsed.items && Array.isArray(parsed.items)) {
+        return parsed;
+      }
     }
   } catch (error) {
-    console.error('Error parsing guest cart:', error);
+    console.error('Error parsing guest cart from cookies:', error);
+    // Clear corrupted cookie
+    Cookies.remove(CART_COOKIE_NAME);
   }
 
   // Return empty cart if no data found or error occurred
@@ -55,9 +71,22 @@ export const saveGuestCart = (cart: GuestCart): void => {
   
   try {
     cart.updated_at = new Date().toISOString();
-    localStorage.setItem('guest_cart', JSON.stringify(cart));
+    const cartString = JSON.stringify(cart);
+    
+    // Check if cart data is too large for cookies (cookies have ~4KB limit)
+    if (cartString.length > 4000) {
+      console.warn('Cart data too large for cookies, truncating items');
+      // Keep only the most recent items if cart is too large
+      const truncatedCart = {
+        ...cart,
+        items: cart.items.slice(-10) // Keep only last 10 items
+      };
+      Cookies.set(CART_COOKIE_NAME, JSON.stringify(truncatedCart), CART_COOKIE_OPTIONS);
+    } else {
+      Cookies.set(CART_COOKIE_NAME, cartString, CART_COOKIE_OPTIONS);
+    }
   } catch (error) {
-    console.error('Error saving guest cart:', error);
+    console.error('Error saving guest cart to cookies:', error);
   }
 };
 
@@ -115,7 +144,7 @@ export const updateGuestCartQuantity = (productId: string, quantity: number): Gu
 // Clear guest cart
 export const clearGuestCart = (): void => {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem('guest_cart');
+  Cookies.remove(CART_COOKIE_NAME);
 };
 
 // Get guest cart item count
@@ -124,9 +153,45 @@ export const getGuestCartItemCount = (): number => {
   return cart.items.reduce((total, item) => total + item.quantity, 0);
 };
 
+// Get guest cart total value (requires product prices)
+export const getGuestCartTotal = async (): Promise<number> => {
+  const cart = getGuestCart();
+  let total = 0;
+  
+  // In a real application, you would fetch product prices from your API
+  // For now, we'll return a placeholder calculation
+  for (const item of cart.items) {
+    // TODO: Fetch actual product price from API
+    total += item.quantity * 50; // Placeholder: £50 per item
+  }
+  
+  return total;
+};
+
+// Validate and cleanup cart items (remove invalid entries)
+export const validateGuestCart = (): GuestCart => {
+  const cart = getGuestCart();
+  const validItems = cart.items.filter(item => 
+    item.partner_product_id && 
+    item.quantity > 0 && 
+    typeof item.quantity === 'number'
+  );
+  
+  if (validItems.length !== cart.items.length) {
+    const cleanedCart = {
+      ...cart,
+      items: validItems
+    };
+    saveGuestCart(cleanedCart);
+    return cleanedCart;
+  }
+  
+  return cart;
+};
+
 // Convert guest cart to user cart (for when user creates account)
 export const transferGuestCartToUser = async (userId: string): Promise<void> => {
-  const guestCart = getGuestCart();
+  const guestCart = validateGuestCart();
   
   if (guestCart.items.length === 0) {
     clearGuestCart();
@@ -134,14 +199,39 @@ export const transferGuestCartToUser = async (userId: string): Promise<void> => 
   }
 
   // Here you would typically call an API to transfer the cart items
-  // For now, we'll just clear the guest cart after transfer
   try {
     // TODO: Implement API call to transfer guest cart items to user account
     // await transferCartAPI(userId, guestCart.items);
     console.log(`Transferring ${guestCart.items.length} items to user ${userId}`);
     
+    // Clear guest cart after successful transfer
     clearGuestCart();
   } catch (error) {
     console.error('Error transferring guest cart to user:', error);
+    throw error; // Re-throw to handle in calling component
+  }
+};
+
+// Merge guest cart with existing user cart
+export const mergeGuestCartWithUserCart = async (userId: string): Promise<void> => {
+  const guestCart = validateGuestCart();
+  
+  if (guestCart.items.length === 0) {
+    clearGuestCart();
+    return;
+  }
+
+  try {
+    // TODO: Implement API call to merge guest cart with user's existing cart
+    // This would typically:
+    // 1. Fetch user's existing cart
+    // 2. Merge items (combining quantities for same products)
+    // 3. Update user's cart in database
+    console.log(`Merging ${guestCart.items.length} guest items with user ${userId} cart`);
+    
+    clearGuestCart();
+  } catch (error) {
+    console.error('Error merging guest cart with user cart:', error);
+    throw error;
   }
 };

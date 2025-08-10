@@ -1,18 +1,26 @@
 import React from "react";
+import { useSession } from "next-auth/react";
 import { useGetUserConsentsQuery } from "@/redux/features/userConsents/userConsentsApi";
 import { UserConsent } from "@/redux/features/userConsents/userConsentsTypes";
 
-const MOCK_USER_ID = "some-authenticated-user-id";
-
 const UserPrivacySettingsPage: React.FC = () => {
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+
   const {
     data: consents,
     isLoading,
     error,
   } = useGetUserConsentsQuery({
-    userId: MOCK_USER_ID,
+    userId: userId || "",
     latest_only: false, // Get all consents for history
+  }, {
+    skip: !userId, // Skip query if no user ID
   });
+
+  if (!session) {
+    return <div>Please log in to view your privacy settings.</div>;
+  }
 
   if (isLoading) {
     return <div>Loading privacy settings...</div>;

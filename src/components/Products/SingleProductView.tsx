@@ -29,11 +29,6 @@ const SingleProductView: React.FC<SingleProductViewProps> = ({ product }) => {
     await addToCart(product.id, quantity, product.partner_name || "Product");
   };
 
-  const handleBuyNow = async () => {
-    await addToCart(product.id, quantity, product.partner_name || "Product");
-    router.push('/checkout');
-  };
-
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
     if (newQuantity >= 1 && newQuantity <= 10) {
@@ -241,15 +236,6 @@ const SingleProductView: React.FC<SingleProductViewProps> = ({ product }) => {
                     <Share2 className="w-5 h-5" />
                   </button>
                 </div>
-                
-                <Button
-                  variant="secondary"
-                  className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold"
-                  onClick={handleBuyNow}
-                  disabled={!product.is_active}
-                >
-                  Buy Now - Checkout Instantly
-                </Button>
               </div>
             </div>
 
@@ -303,36 +289,9 @@ const SingleProductView: React.FC<SingleProductViewProps> = ({ product }) => {
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="space-y-6">
-                {[1, 2, 3].map((review) => (
-                  <div key={review} className="border-b last:border-b-0 pb-6 last:pb-0">
-                    <div className="flex items-start space-x-4">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium">JD</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium">John Doe</span>
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${
-                                  i < 4 ? "text-yellow-400 fill-current" : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-sm mb-2">Verified Purchase</p>
-                        <p className="text-gray-700">
-                          Great product! The test was easy to use and the results were very detailed. 
-                          Would definitely recommend to anyone looking to understand their health better.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="text-center py-8">
+                <p className="text-gray-600 text-lg">Reviews will be loaded from our database</p>
+                <p className="text-gray-500 text-sm mt-2">Customer reviews are dynamically loaded based on verified purchases</p>
               </div>
             </div>
           </section>

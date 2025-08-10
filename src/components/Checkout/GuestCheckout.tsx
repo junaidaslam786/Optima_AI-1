@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/hooks/useCart";
 import { getGuestCart, clearGuestCart } from "@/lib/guestCart";
+import { getGuestCheckoutForm, updateGuestCheckoutForm } from "@/lib/guestCheckout";
 import Button from "@/components/ui/Button";
 import toast from "react-hot-toast";
 
@@ -86,14 +87,62 @@ const GuestCheckout: React.FC<GuestCheckoutProps> = ({ onComplete }) => {
   const cartData = getCartData();
   const isGuestUser = !session?.user;
 
+  // Load saved guest checkout data on component mount
+  useEffect(() => {
+    if (isGuestUser) {
+      const savedData = getGuestCheckoutForm();
+      if (savedData.email || savedData.name) {
+        // Parse name into first and last name
+        const nameParts = savedData.name.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        setFormData(prev => ({
+          ...prev,
+          firstName,
+          lastName,
+          email: savedData.email,
+          phone: savedData.phone,
+          address1: savedData.address_line_1,
+          address2: savedData.address_line_2,
+          city: savedData.city,
+          postalCode: savedData.postal_code,
+          country: savedData.country,
+        }));
+      }
+    }
+  }, [isGuestUser]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     
+    const newValue = type === 'checkbox' ? checked : value;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newValue
     }));
+
+    // Save to cookies for guest users
+    if (isGuestUser && type !== 'checkbox') {
+      const updatedFormData = {
+        ...formData,
+        [name]: newValue,
+      };
+      
+      // Convert to guest checkout format and save
+      updateGuestCheckoutForm({
+        email: updatedFormData.email,
+        name: `${updatedFormData.firstName} ${updatedFormData.lastName}`.trim(),
+        phone: updatedFormData.phone,
+        address_line_1: updatedFormData.address1,
+        address_line_2: updatedFormData.address2,
+        city: updatedFormData.city,
+        state: '', // Not used in this form
+        postal_code: updatedFormData.postalCode,
+        country: updatedFormData.country,
+      });
+    }
   };
 
   const generateRandomPassword = (): string => {

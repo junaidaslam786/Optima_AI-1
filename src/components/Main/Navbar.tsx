@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { ShoppingCart } from "lucide-react";
 import { PaletteSelector } from "@/components/Theme/PaletteSelector";
+import { useCart } from "@/hooks/useCart";
 
 interface NavLink {
   href: string;
@@ -16,6 +18,7 @@ interface NavLink {
 const navData: Record<string, NavLink[]> = {
   guest: [
     { href: "/products", label: "Purchase a Test Kit" },
+    { href: "/cart", label: "Cart" },
     { href: "/blogs", label: "Blog" },
     {
       href: "#",
@@ -149,6 +152,7 @@ export function Navbar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { cartCount } = useCart();
 
   const userRole = session?.user?.role || "guest";
 
@@ -254,6 +258,30 @@ export function Navbar() {
         </li>
       );
     } else {
+      // Special handling for cart link to show cart count
+      if (link.href === "/cart") {
+        return (
+          <li key={link.label}>
+            <Link
+              href={link.href}
+              className={`flex items-center gap-1 ${
+                isActive
+                  ? "text-primary font-semibold"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {link.label}
+              {cartCount > 0 && (
+                <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
+          </li>
+        );
+      }
+      
       return (
         <li key={link.label}>
           <Link
