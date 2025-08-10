@@ -31,7 +31,6 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
     return partnerProducts;
   }, [partnerProducts, partnerId]);
 
-  // Helper function to get the error message safely
   const getErrorMessage = (
     error: FetchBaseQueryError | SerializedError | undefined
   ): string => {
@@ -82,7 +81,7 @@ const ProductList: React.FC<ProductListProps> = ({ partnerId }) => {
       <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center">
         {partnerId
           ? `Products from ${
-              filteredProducts?.[0]?.partner_id || "Partner" // Display partner ID or name if available
+              filteredProducts?.[0]?.partner_profiles?.company_name || "Partner"
             }`
           : "All Partner Products"}
       </h1>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState, useEffect } from "react";
 import Image from "next/image";
 import { Navbar } from "@/components/Main/Navbar";
+import Footer from "@/components/Main/Footer";
 import { Toaster } from "react-hot-toast";
 import { usePathname } from "next/navigation";
 import { Provider } from "react-redux";
@@ -52,8 +53,11 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
                     <Navbar />
                   </div>
                 </header>
-                <main className="w-full min-h-[100vh] pt-[14vh] flex flex-col lg:flex-row">
-                  {children}
+                <main className="w-full min-h-[100vh] pt-[14vh] flex flex-col">
+                  <div className="flex-grow">
+                    {children}
+                  </div>
+                  <Footer />
                   {showCookieBanner && <CookieConsentBanner />}
                 </main>
               </>

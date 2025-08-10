@@ -1,4 +1,5 @@
 import { AdminProduct } from "../adminProducts/adminProductsTypes";
+import { PartnerProfile } from "../partnerProfiles/partnerProfilesTypes";
 
 export interface PartnerProduct {
   id: string;
@@ -14,6 +15,7 @@ export interface PartnerProduct {
   created_at: string;
   updated_at: string;
   admin_product?: AdminProduct;
+  partner_profiles?: PartnerProfile;
 }
 
 export interface CreatePartnerProduct {

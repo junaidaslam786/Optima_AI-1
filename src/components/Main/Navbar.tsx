@@ -15,8 +15,7 @@ interface NavLink {
 
 const navData: Record<string, NavLink[]> = {
   guest: [
-    { href: "/products", label: "Products" },
-    { href: "/purchase", label: "Purchase a Test Kit" },
+    { href: "/products", label: "Purchase a Test Kit" },
     { href: "/blogs", label: "Blog" },
     {
       href: "#",
@@ -39,11 +38,10 @@ const navData: Record<string, NavLink[]> = {
   ],
   client: [
     { href: "/dashboard", label: "Dashboard", authRequired: true },
-    { href: "/products", label: "Products" },
     { href: "/cart", label: "Cart", authRequired: true },
     { href: "/orders", label: "My Orders", authRequired: true },
     { href: "/reports", label: "Past Reports", authRequired: true },
-    { href: "/purchase", label: "Purchase a Test Kit" },
+    { href: "/products", label: "Purchase a Test Kit" },
     { href: "/blogs", label: "Blog" },
     {
       href: "#",

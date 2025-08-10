@@ -185,7 +185,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ orderId }) => {
                 src={
                   item.partner_products?.thumbnail_url ||
                   item.partner_products?.product_image_urls?.[0] ||
-                  "/placeholder-image.jpg"
+                  "/medical-kit.jpg"
                 }
                 alt={item.partner_products?.partner_name || "Product Image"}
                 layout="fill"
@@ -193,7 +193,7 @@ const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ orderId }) => {
                 className="rounded-md"
                 unoptimized
                 onError={(e) => {
-                  e.currentTarget.src = "/placeholder-image.jpg";
+                  e.currentTarget.src = "/medical-kit.jpg";
                 }}
               />
             </div>
