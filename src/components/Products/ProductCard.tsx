@@ -3,25 +3,19 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { PartnerProduct } from "@/redux/features/partnerProducts/partnerProductsTypes";
-import { useAddOrUpdateCartItemMutation } from "@/redux/features/cartItems/cartItemsApi";
-import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 
 interface ProductCardProps {
   product: PartnerProduct;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const { addToCart, isLoading: isAddingToCart } = useCart();
   const router = useRouter();
-  const { data: session } = useSession();
-  const userId = session?.user?.id;
-
-  const [addOrUpdateCartItem, { isLoading: isAddingToCart }] =
-    useAddOrUpdateCartItemMutation();
 
   const thumbnailUrl =
     product.thumbnail_url ||
@@ -34,23 +28,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!userId) {
-      toast.error("Please log in to add items to your cart.");
-      router.push("/auth/signin");
-      return;
-    }
+    await addToCart(product.id, 1, productName);
+  };
 
-    try {
-      await addOrUpdateCartItem({
-        user_id: userId,
-        partner_product_id: product.id,
-        quantity: 1,
-      }).unwrap();
-      toast.success(`${productName} added to cart!`);
-    } catch (error: unknown) {
-      console.error("Failed to add to cart:", error);
-      toast.error("Failed to add to cart. Please try again.");
-    }
+  const handleBuyNow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    await addToCart(product.id, 1, productName);
+    router.push('/checkout');
   };
 
   return (
@@ -114,22 +100,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Link href={`/products/${product.id}`} className="flex-1">
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Link href={`/products/${product.id}`} className="flex-1">
+              <Button
+                variant="secondary"
+                className="w-full py-3 font-semibold border-2 border-gray-200 hover:border-[rgb(79,135,162)] hover:text-[rgb(79,135,162)] transition-all duration-200"
+              >
+                View Details
+              </Button>
+            </Link>
             <Button
-              variant="secondary"
-              className="w-full py-3 font-semibold border-2 border-gray-200 hover:border-[rgb(79,135,162)] hover:text-[rgb(79,135,162)] transition-all duration-200"
+              onClick={handleAddToCart}
+              disabled={!product.is_active || isAddingToCart}
+              className="px-4 py-3 bg-[rgb(79,135,162)] hover:bg-[rgb(69,125,152)] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 flex items-center justify-center"
+              isLoading={isAddingToCart}
             >
-              View Details
+              {!isAddingToCart && <ShoppingCart className="w-5 h-5" />}
             </Button>
-          </Link>
+          </div>
           <Button
-            onClick={handleAddToCart}
-            disabled={!product.is_active || isAddingToCart}
-            className="px-4 py-3 bg-[rgb(79,135,162)] hover:bg-[rgb(69,125,152)] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 flex items-center justify-center"
-            isLoading={isAddingToCart}
+            onClick={handleBuyNow}
+            disabled={!product.is_active}
+            className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200"
           >
-            {!isAddingToCart && <ShoppingCart className="w-5 h-5" />}
+            Buy Now
           </Button>
         </div>
       </div>

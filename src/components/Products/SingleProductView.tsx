@@ -4,11 +4,10 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { ChevronLeft, Heart, Share2, ShoppingCart, Star, Minus, Plus } from "lucide-react";
 import { PartnerProduct } from "@/redux/features/partnerProducts/partnerProductsTypes";
-import { useAddOrUpdateCartItemMutation } from "@/redux/features/cartItems/cartItemsApi";
 import Button from "@/components/ui/Button";
+import { useCart } from "@/hooks/useCart";
 import toast from "react-hot-toast";
 
 interface SingleProductViewProps {
@@ -17,37 +16,22 @@ interface SingleProductViewProps {
 
 const SingleProductView: React.FC<SingleProductViewProps> = ({ product }) => {
   const router = useRouter();
-  const { data: session } = useSession();
-  const userId = session?.user?.id;
+  const { addToCart, isLoading: isAddingToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
-
-  const [addOrUpdateCartItem, { isLoading: isAddingToCart }] =
-    useAddOrUpdateCartItemMutation();
 
   const productImages = product.product_image_urls?.length 
     ? product.product_image_urls 
     : [product.thumbnail_url || "/medical-kit.jpg"];
 
   const handleAddToCart = async () => {
-    if (!userId) {
-      toast.error("Please log in to add items to your cart.");
-      router.push("/auth/signin");
-      return;
-    }
+    await addToCart(product.id, quantity, product.partner_name || "Product");
+  };
 
-    try {
-      await addOrUpdateCartItem({
-        user_id: userId,
-        partner_product_id: product.id,
-        quantity: quantity,
-      }).unwrap();
-      toast.success(`${product.partner_name || "Product"} added to cart!`);
-    } catch (error: unknown) {
-      console.error("Failed to add to cart:", error);
-      toast.error("Failed to add to cart. Please try again.");
-    }
+  const handleBuyNow = async () => {
+    await addToCart(product.id, quantity, product.partner_name || "Product");
+    router.push('/checkout');
   };
 
   const handleQuantityChange = (change: number) => {
@@ -230,31 +214,42 @@ const SingleProductView: React.FC<SingleProductViewProps> = ({ product }) => {
                 </div>
               </div>
 
-              <div className="flex space-x-4">
+              <div className="space-y-3">
+                <div className="flex space-x-4">
+                  <Button
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center space-x-2"
+                    onClick={handleAddToCart}
+                    isLoading={isAddingToCart}
+                    disabled={!product.is_active || isAddingToCart}
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>{product.is_active ? "Add to Cart" : "Out of Stock"}</span>
+                  </Button>
+                  <button
+                    onClick={handleWishlist}
+                    className={`p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${
+                      isWishlisted ? "text-red-500 border-red-300" : "text-gray-600"
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-600"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                </div>
+                
                 <Button
-                  variant="primary"
-                  className="flex-1 flex items-center justify-center space-x-2"
-                  onClick={handleAddToCart}
-                  isLoading={isAddingToCart}
-                  disabled={!product.is_active || isAddingToCart}
+                  variant="secondary"
+                  className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                  onClick={handleBuyNow}
+                  disabled={!product.is_active}
                 >
-                  <ShoppingCart className="w-5 h-5" />
-                  <span>{product.is_active ? "Add to Cart" : "Out of Stock"}</span>
+                  Buy Now - Checkout Instantly
                 </Button>
-                <button
-                  onClick={handleWishlist}
-                  className={`p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${
-                    isWishlisted ? "text-red-500 border-red-300" : "text-gray-600"
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-600"
-                >
-                  <Share2 className="w-5 h-5" />
-                </button>
               </div>
             </div>
 
