@@ -34,3 +34,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Email via Gmail OAuth2
+
+Configure these environment variables in `.env.local` to enable email sending with the Gmail API:
+
+```
+GMAIL_CLIENT_ID=
+GMAIL_CLIENT_SECRET=
+GMAIL_REFRESH_TOKEN=
+GMAIL_SENDER_EMAIL=
+```
+
+Steps:
+- In Google Cloud Console, create an OAuth client (Web/Desktop), enable Gmail API.
+- Use OAuth Playground or your own script to obtain a refresh token for the sender account with scope `https://mail.google.com/`.
+- Set the env vars above and restart the dev server.

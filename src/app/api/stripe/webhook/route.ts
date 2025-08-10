@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Readable } from "stream";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendMail, paymentSuccessEmailTemplate, orderConfirmationEmailTemplate } from "@/lib/mailer";
 import type Stripe from "stripe";
 
 async function buffer(readable: Readable) {
@@ -75,6 +76,87 @@ export async function POST(req: NextRequest) {
                         `Error updating transaction for PI ${paymentIntentSucceeded.id} on success:`,
                         transactionError.message,
                     );
+                }
+
+                // Send payment success and order confirmation emails
+                try {
+                    // Fetch order details for emails
+                    const { data: orderData, error: fetchOrderError } = await supabaseAdmin
+                        .from("orders")
+                        .select(`
+                            *,
+                            users!inner(name, email),
+                            order_items(
+                                quantity,
+                                price,
+                                products(name)
+                            ),
+                            shipping_details(*)
+                        `)
+                        .eq("id", orderIdSucceeded)
+                        .single();
+
+                    if (fetchOrderError || !orderData) {
+                        console.error("Error fetching order for email:", fetchOrderError?.message);
+                    } else {
+                        const userEmail = orderData.users.email;
+                        const userName = orderData.users.name || "Valued Customer";
+                        
+                        // Send payment success email
+                        const paymentTemplate = paymentSuccessEmailTemplate({
+                            name: userName,
+                            amount: paymentIntentSucceeded.amount / 100, // Convert from cents
+                            currency: paymentIntentSucceeded.currency.toUpperCase(),
+                            transactionId: paymentIntentSucceeded.id,
+                            planName: orderData.order_items?.[0]?.products?.name || "Optima AI Service"
+                        });
+
+                        await sendMail({
+                            to: userEmail,
+                            subject: paymentTemplate.subject,
+                            html: paymentTemplate.html,
+                            text: paymentTemplate.text
+                        });
+
+                        // Send order confirmation email
+                        const orderItems = orderData.order_items?.map((item: { products?: { name?: string }; quantity: number; price: number }) => ({
+                            name: item.products?.name || "Product",
+                            quantity: item.quantity,
+                            price: item.price
+                        })) || [];
+
+                        const shippingAddress = orderData.shipping_details ? {
+                            street: orderData.shipping_details.address_line_1 || "",
+                            city: orderData.shipping_details.city || "",
+                            state: orderData.shipping_details.state || "",
+                            zipCode: orderData.shipping_details.postal_code || "",
+                            country: orderData.shipping_details.country || ""
+                        } : undefined;
+
+                        const orderTemplate = orderConfirmationEmailTemplate({
+                            name: userName,
+                            orderNumber: orderData.id.toString(),
+                            orderDate: new Date(orderData.created_at),
+                            items: orderItems,
+                            subtotal: orderData.total_amount || 0,
+                            total: orderData.total_amount || 0,
+                            currency: paymentIntentSucceeded.currency.toUpperCase(),
+                            shippingAddress: shippingAddress,
+                            estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+                        });
+
+                        await sendMail({
+                            to: userEmail,
+                            subject: orderTemplate.subject,
+                            html: orderTemplate.html,
+                            text: orderTemplate.text
+                        });
+
+                        console.log(`Payment success and order confirmation emails sent to ${userEmail}`);
+                    }
+                } catch (emailError) {
+                    console.error("Failed to send payment/order emails:", emailError);
+                    // Don't fail the webhook if email fails
                 }
             }
             break;

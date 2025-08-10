@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { passwordChangedEmailTemplate, sendMail } from "@/lib/mailer";
 
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
     try {
@@ -33,7 +34,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
             );
         }
 
-        const { data: userUpdateData, error } = await supabaseAdmin.auth.admin.updateUserById(
+    const { data: userUpdateData, error } = await supabaseAdmin.auth.admin.updateUserById(
             user.id,
             { password: newPassword }
         );
@@ -44,6 +45,25 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
                 { error: `Failed to change password: ${error.message}` },
                 { status: 400 } // Use 400 for client-side errors like invalid token/password
             );
+        }
+
+        // Notify user via email that password has been changed
+        try {
+            const email = user.email ?? "";
+            if (email) {
+                const origin = request.headers.get("origin") || "";
+                const recovery = await supabaseAdmin.auth.admin.generateLink({
+                    type: "recovery",
+                    email,
+                    options: { redirectTo: `${origin}/auth/update-password` },
+                });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const resetLink = (recovery.data as any)?.action_link || (recovery.data as any)?.properties?.action_link || `${origin}/auth/forgot-password`;
+                const template = passwordChangedEmailTemplate({ name: user.user_metadata?.name ?? null, email, resetLink });
+                await sendMail({ to: email, subject: template.subject, html: template.html, text: template.text });
+            }
+        } catch (notifyErr) {
+            console.error("Failed to send password changed email:", notifyErr);
         }
 
         // Success response
