@@ -38,7 +38,8 @@ export default function CartPage() {
   useEffect(() => {
     const data = getCartData();
     setCartData(data);
-  }, [cartCount, getCartData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartCount]);
 
   // Fetch product details for cart items
   useEffect(() => {
