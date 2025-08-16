@@ -28,6 +28,13 @@ export const usersApi = createApi({
       query: (id) => `/${id}`,
       providesTags: (result, error, id) => [{ type: "User", id }],
     }),
+    getClients: builder.query<User[], void>({
+      query: () => "?role=client",
+      providesTags: (result) =>
+        result
+          ? [...result.map(({ id }) => ({ type: "User" as const, id })), "User"]
+          : ["User"],
+    }),
     createUser: builder.mutation<User, CreateUser>({
       query: (newUser) => ({
         url: "",
@@ -57,6 +64,7 @@ export const usersApi = createApi({
 export const {
   useGetUsersQuery,
   useGetUserByIdQuery,
+  useGetClientsQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,

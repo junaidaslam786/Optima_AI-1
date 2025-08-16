@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export async function GET() {
-  const { data, error } = await supabaseAdmin
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const role = searchParams.get('role');
+  
+  let query = supabaseAdmin
     .from("users")
     .select("id,email,name,role,dob,address,subscription, phone, created_at, updated_at");
+  
+  if (role) {
+    query = query.eq('role', role);
+  }
+  
+  const { data, error } = await query;
+  
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

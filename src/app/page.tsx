@@ -9,29 +9,29 @@ const HomePage = () => {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section 
-        className="relative min-h-screen flex items-center justify-start bg-cover bg-center"
+        className="relative min-h-screen flex items-center justify-start bg-cover bg-center "
         style={{
-          backgroundImage: `linear-gradient(rgba(79, 135, 162, 0.7), rgba(79, 135, 162, 0.7)), url('/Banner.png')`
+          backgroundImage: `linear-gradient(rgba(79, 135, 162, 0.3), rgba(79, 135, 162, 0.3)), url('/Banner.png')`
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="max-w-2xl">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
-              Your health,<br />
-              understood
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 font-light text-white leading-relaxed">
-              At home blood tests, powered by<br />
-              AI insights. No need for<br />
-              appointments, no delays, just<br />
-              intelligent health insights.
-            </p>
-            <Link 
-              href="/products"
-              className="inline-block bg-[rgb(79,135,162)] hover:bg-[rgb(69,125,152)] text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-300 border-2 border-white"
-            >
-              View tests
-            </Link>
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
+          Your health,<br />
+          understood
+        </h1>
+        <p className="text-xl md:text-2xl mb-8 font-light text-white leading-relaxed">
+          At home blood tests, powered by<br />
+          AI insights. No need for<br />
+          appointments, no delays, just<br />
+          intelligent health insights.
+        </p>
+        <Link 
+          href="/products"
+          className="inline-block bg-[rgb(79,135,162)] hover:bg-[rgb(69,125,152)] text-white font-semibold py-4 px-8 rounded-lg transition-colors duration-300 border-2 border-white"
+        >
+          View tests
+        </Link>
           </div>
         </div>
       </section>

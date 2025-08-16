@@ -18,8 +18,6 @@ interface NavLink {
 const navData: Record<string, NavLink[]> = {
   guest: [
     { href: "/products", label: "Purchase a Test Kit" },
-    { href: "/cart", label: "Cart" },
-    { href: "/blogs", label: "Blog" },
     {
       href: "#",
       label: "Legal",
@@ -33,19 +31,19 @@ const navData: Record<string, NavLink[]> = {
       href: "#",
       label: "Learn",
       subLinks: [
-        { href: "/learn", label: "Learn" },
+        { href: "/blogs", label: "Learn" },
         { href: "/guides", label: "Guides on Markers" },
       ],
     },
     { href: "/auth/signin", label: "Sign In" },
+    { href: "/cart", label: "Cart" },
   ],
   client: [
     { href: "/dashboard", label: "Dashboard", authRequired: true },
-    { href: "/cart", label: "Cart", authRequired: true },
     { href: "/orders", label: "My Orders", authRequired: true },
     { href: "/reports", label: "Past Reports", authRequired: true },
     { href: "/products", label: "Purchase a Test Kit" },
-    { href: "/blogs", label: "Blog" },
+    { href: "/blogs", label: "Learn" },
     {
       href: "#",
       label: "Legal",
@@ -80,6 +78,7 @@ const navData: Record<string, NavLink[]> = {
         { href: "/profile/payment-details", label: "Payment Details" },
       ],
     },
+    { href: "/cart", label: "Cart", authRequired: true },
   ],
   partner: [
     { href: "/partner/products", label: "Products", authRequired: true },
@@ -274,14 +273,14 @@ export function Navbar() {
               {link.label}
               {cartCount > 0 && (
                 <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
-                  {cartCount > 99 ? '99+' : cartCount}
+                  {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
             </Link>
           </li>
         );
       }
-      
+
       return (
         <li key={link.label}>
           <Link

@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import { Provider } from "react-redux";
 import { store } from "@/redux/store";
 import CookieConsentBanner from "@/components/UserConsents/CookieConsentBanner";
+import Link from "next/link";
 
 const queryClient = new QueryClient();
 
@@ -43,20 +44,20 @@ export default function ClientProvider({ children }: { children: ReactNode }) {
               <>
                 <header className="fixed top-0 inset-x-0 h-[14vh] bg-white shadow z-50">
                   <div className="mx-auto h-full px-[2vw] flex items-center justify-between">
-                    <Image
-                      src="/optima.png"
-                      alt="Optima.AI"
-                      width={218}
-                      height={60}
-                      className="object-contain"
-                    />
+                    <Link href="/">
+                      <Image
+                        src="/optima.png"
+                        alt="Optima.AI"
+                        width={218}
+                        height={60}
+                        className="object-contain"
+                      />
+                    </Link>
                     <Navbar />
                   </div>
                 </header>
                 <main className="w-full min-h-[100vh] pt-[14vh] flex flex-col">
-                  <div className="flex-grow">
-                    {children}
-                  </div>
+                  <div className="flex-grow">{children}</div>
                   <Footer />
                   {showCookieBanner && <CookieConsentBanner />}
                 </main>

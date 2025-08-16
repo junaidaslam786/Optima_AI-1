@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase"; // Assuming this path is correct for client-side Supabase
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { UploadCloud, Users } from "lucide-react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner"; // Assuming this path is correct
@@ -9,41 +8,26 @@ import Button from "@/components/ui/Button"; // Assuming this path is correct
 import { withAuth } from "@/components/Auth/withAuth"; // Assuming this path is correct
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
+import { useGetClientsQuery } from "@/redux/features/users/usersApi";
 
 const FUNCTION_URL = `${process.env.NEXT_PUBLIC_SUPABASE_EDGE_FUNCTION_URL}/upload-csv`;
 
-type Option = { id: string; name: string };
-
 const CsvUploads: React.FC = () => {
   const { data: session, status } = useSession();
-  const [clients, setClients] = useState<Option[]>([]);
+  const { data: clients = [], isLoading: clientsLoading } =
+    useGetClientsQuery();
   const [clientId, setClientId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [isClientCsv, setIsClientCsv] = useState(true);
 
-  useEffect(() => {
-    async function loadClients() {
-      if (status === "authenticated" && session?.user?.id) {
-        const { data, error } = await supabase
-          .from("users")
-          .select("id,name")
-          .eq("role", "client");
-        if (data) setClients(data);
-        if (error) toast.error(error.message);
-      }
-    }
-    loadClients();
-  }, [status, session]);
-
-  if (status === "loading") {
+  if (status === "loading" || clientsLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -176,9 +160,9 @@ const CsvUploads: React.FC = () => {
                   className="appearance-none w-full p-3 border border-primary/50 bg-primary/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">— Choose client —</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name || client.email}
                     </option>
                   ))}
                 </select>
